@@ -1,0 +1,24 @@
+# Regional input assumptions for section 6.
+# EVERY ROW IS AN ASSUMPTION, NOT A MEASUREMENT. The note
+# re-prices its own European technology through equation (4.2)
+# under these inputs; it does not quote regional levels from
+# any external source, because those cannot be harmonised.
+region,parameter,value,unit,basis,source
+Europe,discount_rate,0.0700,real,the note's own assumption throughout,Section 5; a conventional central value for a European project.
+United States,discount_rate,0.0600,real,one point below the European figure,Illustrative. Surveyed equity and debt costs for mature US renewable projects sit slightly below European ones; the IEA Cost of Capital Observatory tracks the spread.
+China,discount_rate,0.0450,real,two and a half points below the European figure,Illustrative. State-directed lending at administered rates; widely reported to be the single largest source of the Chinese cost advantage in capital-intensive generation.
+Europe,solar_capacity_factor,0.1150,share of nameplate,the note's own Danish reference,Table 5.1; roughly what Danish sites deliver.
+United States,solar_capacity_factor,0.2400,share of nameplate,a good south-western site,"Illustrative. Round figure for the US south-west, roughly twice the Danish resource."
+China,solar_capacity_factor,0.1700,share of nameplate,a mid-latitude northern Chinese site,Illustrative. Between the Danish and the south-western US figure.
+Europe,solar_capex_index,1.0000,"index, Europe = 1",the note's own catalogue value,"Table 3.2, from the pinned catalogue."
+United States,solar_capex_index,1.1500,"index, Europe = 1",fifteen per cent above the European figure,"Illustrative. Identical modules at a world price; the difference is labour, permitting, interconnection and tariffs on imported cells."
+China,solar_capex_index,0.6500,"index, Europe = 1",about two thirds of the European figure,"Illustrative. Same modules again; the difference is balance-of-system labour and installation, not the panel."
+Europe,gas_price,35.0000,EUR/MWh_th,the note's own fuel assumption,Table D.1; a European forward level.
+United States,gas_price,12.0000,EUR/MWh_th,about a third of the European figure,Illustrative. Henry Hub has traded at a persistent two- to fourfold discount to European TTF since 2022.
+China,gas_price,40.0000,EUR/MWh_th,slightly above the European figure,Illustrative. A net LNG importer competing for the same cargoes.
+Europe,carbon_price,80.0000,EUR/tCO2,the note's own illustrative carbon price,Section 3; the EU emissions trading system.
+United States,carbon_price,0.0000,EUR/tCO2,no economy-wide price,Illustrative. No federal carbon price; some states price carbon.
+China,carbon_price,10.0000,EUR/tCO2,an order of magnitude below the European figure,Illustrative. The national ETS has traded far below EU allowances.
+Europe,nuclear_capex_index,1.0000,"index, Europe = 1",the note's own catalogue value,Table 3.2. Note that this row is itself US-derived; see appendix D.
+United States,nuclear_capex_index,1.1500,"index, Europe = 1",fifteen per cent above the European figure,"Illustrative, and the widest uncertainty band in this table. Recent Western first-of-a-kind projects have overrun heavily and the range across them is far larger than the difference shown here."
+China,nuclear_capex_index,0.3500,"index, Europe = 1",roughly a third of the European figure,"Illustrative. Serial construction of a repeated design; reported costs per kW are a small fraction of recent Western projects, though the accounting is not directly comparable."

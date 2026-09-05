@@ -1,0 +1,26 @@
+# Hand-authored. Every column here is an assumption or a
+# judgement, not a measurement. capacity_factor is a reference
+# annual utilisation for a north-west European system, used only
+# for the per-MWh cost decomposition and the 'typical duty' column.
+# The four q_* columns reproduce and extend the lecture's Table 1;
+# adjustment = difficulty of delivering a CHOSEN output profile,
+# so a technology that cannot raise output on command scores High.
+technology,label,family,fuel,capacity_factor,class,role,q_investment,q_running,q_adjustment,q_time_to_build,order
+solar-utility,"Solar PV, utility",Variable,,0.115,variable,Variable,Medium,Low,High,Low,0
+solar-rooftop,"Solar PV, rooftop",Variable,,0.1,variable,Variable,High,Low,High,Low,1
+onwind,Onshore wind,Variable,,0.33,variable,Variable,Medium,Low,High,Medium,2
+offwind,Offshore wind,Variable,,0.5,variable,Variable,High,Low,High,High,3
+hydro,"Hydro, reservoir",Hydro,,0.4,dispatchable,Mid-merit / flexible,High,Low,Low,High,4
+ror,"Hydro, run-of-river",Hydro,,0.45,variable,Variable,High,Low,High,High,5
+PHS,Pumped hydro storage,Storage,,0.12,store,Storage,High,Low,Low,High,6
+nuclear,Nuclear,Thermal,uranium,0.9,dispatchable,Baseload,Very high,Low,High,Very high,7
+coal,Coal,Thermal,coal,0.5,dispatchable,Baseload,High,Medium,High,High,8
+CCGT,Gas CCGT,Thermal,gas,0.4,dispatchable,Mid-merit,Medium,Medium,Medium,Medium,9
+OCGT,Gas OCGT (peaker),Thermal,gas,0.05,dispatchable,Peaker,Low,High,Low,Low,10
+oil,Oil peaker,Thermal,oil,0.02,dispatchable,Peaker,Low,Very high,Low,Low,11
+central solid biomass CHP,Biomass CHP,Thermal,solid biomass,0.6,dispatchable,Baseload / heat,High,Medium,High,Medium,12
+waste CHP,Waste CHP,Thermal,waste,0.85,dispatchable,Baseload / heat,Very high,High,High,Medium,13
+battery inverter,Battery inverter,Storage,,0.1,store,Storage,Medium,Low,Very low,Low,14
+battery storage,Battery cells,Storage,,0.1,store,Storage,Medium,Low,Very low,Low,15
+central air-sourced heat pump,"Heat pump, district",Heat,electricity,0.35,demand,"Heat, flexible demand",Medium,Medium,Low,Low,16
+central gas boiler,"Gas boiler, district",Heat,gas,0.08,dispatchable,"Heat, peaking",Very low,Medium,Very low,Low,17

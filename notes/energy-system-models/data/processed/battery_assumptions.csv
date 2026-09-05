@@ -1,0 +1,15 @@
+# Battery investment costs: technology-data's published value
+# (*_source) beside the value the note uses (*_used), per cost
+# vintage. Every vintage's 4-hour turnkey system cost is capped
+# at 165 EUR/kWh -- BNEF's 2025 European average turnkey
+# price (177 $/kWh, Energy Storage System Cost Survey 2025,
+# at ~1.07 USD/EUR) -- keeping technology-data's inverter/cells
+# split. Rows with is_override=False are technology-data's own
+# numbers. Identical to the block in the technologies note.
+cost_year,inverter_source_eur_per_kw,cells_source_eur_per_kwh,system_source_eur_per_kwh,inverter_used_eur_per_kw,cells_used_eur_per_kwh,system_used_eur_per_kwh,is_override
+2025,228.631,198.8558,256.0136,147.352,128.162,165.0,True
+2030,170.144,151.0028,193.5388,145.0549,128.7363,165.0,True
+2035,138.242,125.4812,160.0417,138.242,125.4812,160.0417,False
+2040,106.34,99.9596,126.5446,106.34,99.9596,126.5446,False
+2045,85.072,89.8573,111.1253,85.072,89.8573,111.1253,False
+2050,63.804,79.755,95.706,63.804,79.755,95.706,False

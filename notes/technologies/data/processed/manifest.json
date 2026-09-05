@@ -1,0 +1,64 @@
+{
+  "technology_data_tag": "v0.13.2",
+  "eur_year": 2020,
+  "cost_years": [
+    2025,
+    2030,
+    2035,
+    2040,
+    2045,
+    2050
+  ],
+  "reference_year": 2025,
+  "discount_rate": 0.07,
+  "vintage_releases": [
+    {
+      "tag": "v0.1.0",
+      "released": "2020-08"
+    },
+    {
+      "tag": "v0.3.0",
+      "released": "2021-10"
+    },
+    {
+      "tag": "v0.4.0",
+      "released": "2022-07"
+    },
+    {
+      "tag": "v0.6.0",
+      "released": "2023-05"
+    },
+    {
+      "tag": "v0.9.0",
+      "released": "2024-05"
+    },
+    {
+      "tag": "v0.12.0",
+      "released": "2025-05"
+    },
+    {
+      "tag": "v0.13.2",
+      "released": "2025-06"
+    }
+  ],
+  "vintage_target_year": 2030,
+  "battery_override": {
+    "cap_eur_per_kwh_system": 165.0,
+    "cap_hours": 4.0,
+    "source_usd_per_kwh_europe": 177.0,
+    "source": "BloombergNEF, Energy Storage System Cost Survey 2025 (December 2025, press-release figures); see battery_assumptions.csv"
+  },
+  "geography": {
+    "regions": [
+      "Europe",
+      "United States",
+      "China"
+    ],
+    "source": "No dataset. Every row of geography_assumptions.csv is an illustrative assumption; section 6 re-prices the note's own European technology under them rather than quoting regional levels from any external source."
+  },
+  "sources": {
+    "technology-data": "https://github.com/PyPSA/technology-data at tag v0.13.2; outputs/costs_YYYY.csv; EUR2020",
+    "solar-pv-prices": "https://ourworldindata.org/grapher/solar-pv-prices (CC-BY 4.0)",
+    "installed-solar-PV-capacity": "https://ourworldindata.org/grapher/installed-solar-PV-capacity (CC-BY 4.0)"
+  }
+}

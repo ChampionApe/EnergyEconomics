@@ -1,0 +1,32 @@
+# Section 8's cost scenarios. The trend is
+# investment(2025) - investment(2050) on the values the note
+# uses (after the BNEF battery cap and the DEA offshore
+# restoration); pessimistic adds and optimistic subtracts
+# 0.5 x trend, clipped at zero. So the
+# pessimistic world realises only half of technology-data's
+# projected decline and the optimistic one overshoots it by
+# half again. These are scenarios, not a distribution: the
+# note says so rather than reporting them as an interval.
+technology,investment_2025_eur_per_kw,investment_2050_eur_per_kw,trend_eur_per_kw,base_year,horizon,trend_scale,investment_pessimistic_eur_per_kw,investment_optimistic_eur_per_kw
+CCGT,904.7795,846.5773,58.2022,2025,2050,0.5,875.6784,817.4762
+H2 production natural gas steam reforming,228.8467,180.0518,48.7949,2025,2050,0.5,204.4492,155.6543
+OCGT,470.4853,435.818,34.6673,2025,2050,0.5,453.1516,418.4843
+battery inverter,147.352,63.804,83.548,2025,2050,0.5,105.578,22.03
+battery storage,128.162,79.755,48.407,2025,2050,0.5,103.9585,55.5515
+central air-sourced heat pump,1006.7765,906.0988,100.6777,2025,2050,0.5,956.4376,855.7599
+central gas boiler,58.2022,52.9111,5.2911,2025,2050,0.5,55.5566,50.2656
+central solid biomass CHP,3642.4702,3339.6951,302.7751,2025,2050,0.5,3491.0826,3188.3075
+coal,3827.1629,3827.1629,0.0,2025,2050,0.5,3827.1629,3827.1629
+electrolysis,1800.0,1000.0,800.0,2025,2050,0.5,1400.0,600.0
+fuel cell,1269.866,846.5773,423.2887,2025,2050,0.5,1058.2216,634.933
+gas,,,,2025,2050,0.5,,
+hydrogen storage tank type 1 including compressor,54.1855,22.3314,31.8541,2025,2050,0.5,38.2584,6.4043
+hydrogen storage underground,2.6585,1.2761,1.3824,2025,2050,0.5,1.9673,0.5849
+lignite,3827.1629,3827.1629,0.0,2025,2050,0.5,3827.1629,3827.1629
+nuclear,8594.1354,8594.1354,0.0,2025,2050,0.5,8594.1354,8594.1354
+offwind,1883.6993,1642.7437,240.9556,2025,2050,0.5,1763.2215,1522.2659
+oil,362.97,355.5625,7.4075,2025,2050,0.5,359.2662,351.8588
+onwind,1139.8826,1019.1375,120.7451,2025,2050,0.5,1079.51,958.765
+solar-utility,473.1156,292.5769,180.5387,2025,2050,0.5,382.8462,202.3076
+solid biomass,,,,2025,2050,0.5,,
+waste CHP,8829.8509,7480.4488,1349.4021,2025,2050,0.5,8155.1498,6805.7478

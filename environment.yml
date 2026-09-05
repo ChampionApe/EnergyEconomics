@@ -1,0 +1,48 @@
+# Packages needed to run the course material.
+#
+# This file documents dependencies. It is not a required workflow: if you
+# already have a working Python setup, install these however you normally would
+# and ignore the conda parts. See INSTALL.md for one way to do it.
+#
+# Used by both the course development repository and the student repository, so
+# it is published as-is.
+
+name: EE2026
+
+channels:
+  - conda-forge
+
+dependencies:
+  # Core scientific stack.
+  - python >=3.11          # PyPSA 1.3 requires this
+  - pip
+  - pandas
+  - numpy
+  - scipy
+  - matplotlib
+
+  # The modelling stack.
+  #
+  # pypsa pulls in linopy (the optimisation layer we write the small models
+  # against), xarray, netcdf4 and -- importantly -- highspy, the HiGHS solver.
+  # No licence, no registration, no academic sign-up: `import pypsa` gives you a
+  # working LP solver. highspy is listed explicitly below even though pypsa
+  # requires it, because it is the piece that actually solves the models and it
+  # should not be invisible.
+  - pypsa >=1.3
+  - highspy
+  # Time-series aggregation: the network models of the energy-system note
+  # cut the year into segments with tsam (which needs scikit-learn).
+  - tsam
+  - scikit-learn
+
+  # Fetching input data. The Danish data comes from Energi Data Service over
+  # plain HTTP with no API key.
+  - requests
+  # Reading the Danish Energy Agency's technology catalogue (an Excel
+  # workbook) in `data/prepare.py --costs-only`, the one build step the
+  # energy-system note asks of you.
+  - openpyxl
+
+  # Running the exercises.
+  - jupyterlab

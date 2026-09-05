@@ -1,0 +1,16 @@
+{
+  "DK1": {
+    "load": [
+      "dk1",
+      1.0
+    ],
+    "profiles": "dk1"
+  },
+  "DK2": {
+    "load": [
+      "dk2",
+      1.0
+    ],
+    "profiles": "dk2"
+  }
+}

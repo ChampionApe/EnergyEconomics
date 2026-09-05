@@ -1,0 +1,18 @@
+# Offshore wind investment cost: technology-data's published
+# `offwind` (*_source) beside the value the note uses (*_used),
+# per cost vintage. technology-data subtracts the INSTALLATION
+# half of grid connection from the Danish Energy Agency total
+# because PyPSA-Eur adds distance-specific cabling back per farm;
+# this note adds no cabling, so the DEA total is restored. The
+# difference is the grid_connection_installation column, and
+# *_used equals dea_total by construction. Source: the DEA
+# technology catalogue for electricity and district heating,
+# sheet '21 Offshore turbines', at the pinned technology-data tag.
+# Identical to the block in the technologies note.
+cost_year,offwind_source_eur_per_kw,grid_connection_installation_eur_per_kw,offwind_used_eur_per_kw,dea_total_eur_per_kw
+2025,1769.1171,114.5822,1883.6993,1883.6993
+2030,1682.1226,113.2637,1795.3863,1795.3863
+2035,1622.2443,113.6538,1735.8981,1735.8982
+2040,1562.3661,114.044,1676.4101,1676.4101
+2045,1543.1486,116.4283,1659.5769,1659.5769
+2050,1523.9311,118.8126,1642.7437,1642.7437

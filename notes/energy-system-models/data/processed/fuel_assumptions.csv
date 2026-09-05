@@ -1,0 +1,17 @@
+# Fuel prices and carbon contents used EVERYWHERE in this note:
+# the small table of sections 2-5, the re-pricing of the shipped
+# network in sections 6-8, and the greenfield candidates of
+# section 7. Identical to the block in the technologies note.
+# *_source: as published in technology-data v0.13.2.
+# *_used: what the note assumes. Where they differ the note's
+# value is an assumption, flagged in the *_is_assumption columns.
+carrier,price_source_eur_per_mwh_th,price_used_eur_per_mwh_th,price_is_assumption,co2_source_t_per_mwh_th,co2_used_t_per_mwh_th,co2_is_assumption
+gas,24.5680,35.0000,True,0.1980,0.1980,False
+coal,9.5542,12.0000,True,0.3361,0.3361,False
+lignite,3.2985,5.0000,True,0.4069,0.4069,False
+oil,52.9111,55.0000,True,0.2571,0.2571,False
+solid biomass,13.6489,25.0000,True,0.3667,0.0000,True
+uranium,3.4122,3.4122,False,,0.0000,False
+waste,,0.0000,True,,0.1500,True
+wood pellets,13.6489,38.0000,True,0.3667,0.0000,True
+biomethane,62.4351,90.0000,True,,0.0000,True

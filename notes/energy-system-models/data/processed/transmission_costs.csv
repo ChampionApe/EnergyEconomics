@@ -1,0 +1,11 @@
+# Transmission investment costs: technology-data's rows for
+# overhead AC, overhead and submarine DC, and the converter
+# station pair a DC line needs, at tag v0.13.2
+# (vintage 2030). Lines are priced per MW
+# and km; the converter pair per MW. Quoted in section 6's
+# introduction to transmission grids.
+technology,label,kind,investment,investment_unit,lifetime_years,fom_pct_per_year,source
+HVAC overhead,AC overhead line,AC,442.1414,EUR/MW/km,40.0000,2.0000,"Hagspiel et al. (2014): doi:10.1016/j.energy.2014.01.025 , table A.2 ."
+HVDC overhead,DC overhead line,DC,442.1414,EUR/MW/km,40.0000,2.0000,"Hagspiel et al. (2014): doi:10.1016/j.energy.2014.01.025 , table A.2 ."
+HVDC submarine,DC submarine cable,DC,1008.2934,EUR/MW/km,40.0000,0.3500,Härtel et al. (2017): https://doi.org/10.1016/j.epsr.2017.06.008 .
+HVDC inverter pair,DC converter station pair,DC,165803.0398,EUR/MW,40.0000,2.0000,"Hagspiel et al. (2014): doi:10.1016/j.energy.2014.01.025 , table A.2 ."

@@ -1,0 +1,18 @@
+{
+  "source": "Energi Data Service, ProductionConsumptionSettlement, dk2",
+  "licence": "CC-BY 4.0",
+  "year": 2021,
+  "hours": 8760,
+  "normalisation_max_mw": {
+    "wind_onshore": 674.7522,
+    "wind_offshore": 984.0589759999999,
+    "solar": 354.450013
+  },
+  "capacity_factor_of_profile": {
+    "wind_onshore": 0.252559171974169,
+    "wind_offshore": 0.32992005658566137,
+    "solar": 0.1497540128013666
+  },
+  "load_mean_mw": 1582.8409237468036,
+  "load_max_mw": 2499.868569
+}
