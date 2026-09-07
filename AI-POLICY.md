@@ -8,7 +8,7 @@ Everything. There is no AI restriction on the exercises or on your preparation.
 Use whatever tools you like, as much as you like.
 
 This is not permissiveness for its own sake. The exam is sat at the department,
-on paper, without internet or AI. Nothing you do during the term is assessed
+closed book, without internet or AI. Nothing you do during the term is assessed
 against an integrity rule, so there is nothing to enforce. What you do during the
 term determines only one thing: whether you can do this material without help
 when it counts.

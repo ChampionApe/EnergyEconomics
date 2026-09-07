@@ -18,15 +18,16 @@ through the library rather than the publisher's front page, or you will hit
 a paywall the university has already paid. Where an author's own open
 version exists, it is linked below and you can read that instead.
 
-**What is examinable.** Each lecture below lists what is *required*: the
+**What is examinable.** The authoritative list of reading material is kept on
+Absalon. The following should be identical, but where there are differences,
+the Absalon version is the truth. Each lecture below lists what is *required*: the
 sections of the lecture notes it builds on, and the one or two papers the
-lecture works through. That, and only that, can be asked at the exam.
-Everything listed as *supplementary* is there for those who want to go
-further; it is never assumed.
+lecture works through. Only those and lecture slides can be asked at the exam.
+Everything listed as *supplementary* is there for those who want to go further.
 
-Read the required material before the lecture. The lectures are workshops
-on the papers, not summaries of them, and they assume you have read the
-note sections they build on.
+Each lecture requires that you read one paper or lecture note section before and
+skim read a second paper. The lectures are workshops on the second paper, not
+summaries of them, and they assume you have read the note sections they build on.
 
 
 ## 01. Introduction
@@ -36,11 +37,11 @@ note sections they build on.
 - **Berg (2026).** “A Simple Model of Abatement Costs.”  
   [Link](https://github.com/ChampionApe/EnergyEconomics/blob/main/notes/abatement-costs.pdf)
   
-  *Eleven pages, and the place to start. Its section 2 framework comes back in the exercise classes.*
+  *Small motivating setup used in introduction lecture slides.*
 - **Berg (2026).** “Generation Technologies.”  
   [Link](https://github.com/ChampionApe/EnergyEconomics/blob/main/notes/technologies.pdf)
   
-  *A catalogue rather than an argument: what each generating technology is, what it costs, and what a levelised cost does and does not say. Read it once, then use it as a lookup; Appendix C is a glossary written for exactly that.*
+  *A catalogue that collects some information used in lecture slides. Contains information about cost structures, levelized costs, learning curves and similar details. Use mainly as a lookup.*
 
 
 ## 02. Energy markets and market design (guest lecture)

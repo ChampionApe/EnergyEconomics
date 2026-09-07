@@ -1,33 +1,16 @@
 # Installing
 
-**You do not have to follow this guide.** If you already have Python and can
-install packages, use whatever you normally use — nothing in this course depends
-on a particular installation method, and a setup you understand is worth more
-than one you copied.
+The following lists things that are useful to install or setup for the
+numerical/code part of the repository to work. They are guides and suggestions,
+if you have your own setup that works - that is fine as well.
 
-This is here for anyone who wants a route that is known to work.
+## Python
 
-## What you actually need
+The minimum requirement is that you have:
+- Python 3.11 or newer,
+- and the packages listed in [`environment.yml`](environment.yml).
 
-- Python 3.11 or newer
-- The packages listed in [`environment.yml`](environment.yml)
-- A copy of this repository
-
-That is the whole requirement. Everything below is one way of arriving at it.
-
-## Getting the repository
-
-Any of these is fine:
-
-- `git clone https://github.com/ChampionApe/EnergyEconomics.git`
-- [GitHub Desktop](https://desktop.github.com/) — **Code** → **Open with GitHub Desktop**
-- **Code** → **Download ZIP**, if you would rather not use git at all
-
-Git is worth it if you are comfortable with it, because material is added and
-corrected during the term and `git pull` picks that up. With the ZIP you will
-need to download again when things change. Neither is required.
-
-## Installing the packages
+Here are a few suggestions of ways to set this up, if you don't have a preferred route:
 
 ### With conda
 
@@ -61,7 +44,7 @@ on macOS and Linux — then install the packages named under `dependencies:` in
 uv, poetry, pixi, a system Python you manage yourself — all fine. Read the
 dependencies out of `environment.yml` and install them your way.
 
-## Checking it worked
+## Checking that it works
 
 ```
 python -c "import pandas, numpy, scipy, pypsa, highspy; print('ok')"
@@ -69,22 +52,76 @@ python -c "import pandas, numpy, scipy, pypsa, highspy; print('ok')"
 
 If that prints `ok`, you are set up.
 
-`pypsa` is the energy system modelling package the course is built on, and
-`highspy` is the solver it uses — that one is worth checking explicitly, because
-it is the piece that does the actual optimisation and the piece most likely to
-be missing if something went wrong during installation. You do not need to
-install a commercial solver such as Gurobi or CPLEX; nothing in the course
-requires one. If you want one anyway, the next section says how.
+## Getting the repository
 
-## Optional: Gurobi
+Use some Git tool to clone the repository (any will do):
+
+- `git clone https://github.com/ChampionApe/EnergyEconomics.git`
+- [GitHub Desktop](https://desktop.github.com/) — **Code** → **Open with GitHub Desktop**
+
+Material is likely added and corrected during the term, so a simple command like `git pull`
+will pick up changes for you (or clicking `pull` in Github Desktop).
+
+## AI setup - Github Copilot - AI assistant
+
+If you do not subscribe to the latest Claude or Mistral setup, no worries.
+As a student at UCPH, you are at least eligible for GitHub Copilot's free
+student plan (see steps below). This should provide enough tokens/usage to
+allow you to engage with the course assistant (see [`AI-POLICY.md`](AI-POLICY.md))
+to explore the course material.
+
+Do this early in the term — verification is not always instant.
+GitHub redesigns these pages from time to time, so the wording may not match
+exactly; the sequence does.
+
+1. **Get a GitHub account, with your KU email on it.** If you already have one,
+   add your university address (`...@alumni.ku.dk` or your `@ku.dk` address) under
+   [Settings → Emails](https://github.com/settings/emails) and verify it. This is
+   what proves you are a student, so it has to be on the account before you apply.
+
+2. **Apply for the Student Developer Pack.** Go to
+   [education.github.com/pack](https://education.github.com/pack) and choose *Get
+   student benefits*. You will be asked for your school (University of Copenhagen),
+   your KU email, and usually a photo of your student ID or a proof of enrolment
+   from [selvbetjening.ku.dk](https://selvbetjening.ku.dk). Approval takes anything
+   from a few minutes to a few days.
+
+3. **Turn Copilot on.** Once the pack is approved, Copilot Pro is included at no
+   cost. Enable it at [github.com/settings/copilot](https://github.com/settings/copilot).
+   You can check it is active there: the page should say your plan comes from
+   GitHub Education rather than a trial.
+
+4. **Install the extension in your editor.** In VS Code, open the Extensions panel
+   and install **GitHub Copilot** — this pulls in **GitHub Copilot Chat**, which is
+   the part that matters here — then sign in with the same GitHub account when
+   prompted. JetBrains IDEs, Visual Studio and Xcode have equivalent plugins if you
+   prefer one of those.
+
+5. **Open this repository as a folder in the editor.** That is the whole setup for
+   the course assistant. Copilot Chat reads `CLAUDE.md` at the root of the repo and
+   the skills in `.claude/skills/`, so the commands in the README — `/hint`,
+   `/exercise-coach`, `/model-explainer`, `/check-my-reasoning`, `/debug-my-setup`,
+   `/exam-prep` — appear in the chat's slash menu. Nothing else to install, and
+   nothing to configure.
+
+6. **Turn off inline completions while you work on exercises.** Click the Copilot
+   icon in the VS Code status bar and choose *Disable Completions*.
+   [`AI-POLICY.md`](AI-POLICY.md) explains why this is the single most useful thing
+   in this document.
+
+Two things worth knowing. Chat and agent requests are **metered** on the free plan
+while autocomplete is effectively unlimited — so ask targeted questions rather than
+asking the assistant to read half the repository, and it will last you the term.
+And if the pack is refused or you would rather not use any of this, everything in
+the course can be done without it; nothing depends on having an assistant.
+
+## Numerical solvers: Gurobi or HiGHS
 
 Everything in the course solves with HiGHS, and at the default instance
-sizes it does so in seconds. The larger instances behind the modelling
-note's own figures — the twelve-zone network models of sections 6 to 9 at
-their full size — take minutes to hours on HiGHS and several times less on
+sizes it does so pretty quickly. The note's own figures in sections 6-9
+take longer (up to hours on HiGHS) and several times less on
 [Gurobi](https://www.gurobi.com/), a commercial solver that is **free for
-students**. Worth it if you plan to run those instances at full size or to
-use these models in a thesis; not worth an evening otherwise.
+students**. This is how to set that up instead:
 
 1. Register at [gurobi.com/academia](https://www.gurobi.com/academia/academic-program-and-licenses/)
    with your KU email address and request a *named-user academic licence*.
@@ -98,8 +135,7 @@ use these models in a thesis; not worth an evening otherwise.
    ```
 
    or, in the conda environment, `conda install -c gurobi gurobi`. On its
-   own the package comes with a trial licence limited to 2000 variables,
-   which the network models exceed — hence step 1.
+   own the package comes with a trial licence limited to 2000 variables.
 3. Activate the licence. The licence page gives you a `grbgetkey` command
    with your key in it; run it in the same environment while you are on
    the university network (on campus, or through the KU VPN). Afterwards
@@ -112,22 +148,8 @@ use these models in a thesis; not worth an evening otherwise.
    $env:ESM_SOLVER = "gurobi"        # PowerShell
    ```
 
-   Set it in the terminal you launch Jupyter or the scripts from. The
-   results are the same solution and the same prices; only the time changes.
+   Set it in the terminal you launch Jupyter or the scripts from.
 
-If any of this fights you, skip it. HiGHS is the supported route and the one
-every figure in the course can be reproduced with.
-
-## Editor
-
-Whatever you like. [VS Code](https://code.visualstudio.com/) is a reasonable
-default if you have no preference, and it is where GitHub Copilot works best if
-you plan to use the course assistant — see [`AI-POLICY.md`](AI-POLICY.md).
-
-If you use VS Code, make sure it is pointed at the environment you created:
-**Ctrl/Cmd + Shift + P** → *Python: Select Interpreter*. Choosing the wrong
-interpreter is the single most common cause of "it says the package isn't
-installed but I installed it".
 
 ## When it goes wrong
 
