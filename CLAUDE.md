@@ -177,6 +177,11 @@ The map below is what exists. Anything not on it, look for before naming it
 `AI-POLICY.md`, `CURRICULUM.md` (the reading list), `REFERENCES.pdf` (every
 work the course cites), `environment.yml`.
 
+**Slides** in `slides/`, added through the term: `NN-topic.pdf` is the deck as
+shown in the lecture, and `NN-topic-notes.pdf` the same deck with the
+lecturer's note page after each slide. The notes are a record of what was said,
+not a substitute for the lecture notes — for the economics, cite the note PDF.
+
 **Lecture notes**, in reading order. Each is a PDF at `notes/<slug>.pdf` with
 a directory `notes/<slug>/` of the code behind it, opened by that directory's
 `README.md`:

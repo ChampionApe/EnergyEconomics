@@ -11,7 +11,7 @@ Economics, University of Copenhagen.
 | [`AI-POLICY.md`](AI-POLICY.md) | Using AI in this course |
 | [`environment.yml`](environment.yml) | The packages the material needs |
 | [`CURRICULUM.md`](CURRICULUM.md) | The reading list, and where to find the papers |
-| [`slides/`](slides/) | Lecture slides, added as the term goes |
+| [`slides/`](slides/) | Lecture slides, added as the term goes. The `-notes` version of each has my notes on the page after every slide |
 
 ### Lecture notes, and the code behind them
 
