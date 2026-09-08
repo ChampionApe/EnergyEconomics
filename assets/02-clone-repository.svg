@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 560" width="900" height="560" font-family="ui-sans-serif, 'Segoe UI', system-ui, sans-serif">
+  <title>Cloning the course repository from the Command Palette</title>
+  <desc>The VS Code Command Palette with the Git Clone command, and the URL box with the course repository address pasted into it.</desc>
+
+  <rect x="0" y="0" width="900" height="560" rx="10" fill="#0b0b0b"/>
+  <rect x="14" y="14" width="872" height="452" rx="8" fill="#1f1f1f" stroke="#3a3a3a"/>
+  <rect x="14" y="14" width="872" height="32" rx="8" fill="#181818"/>
+  <rect x="14" y="36" width="872" height="10" fill="#181818"/>
+  <text x="450" y="35" font-size="12" fill="#9d9d9d" text-anchor="middle">Visual Studio Code</text>
+  <line x1="14" y1="46" x2="886" y2="46" stroke="#2b2b2b"/>
+  <rect x="14" y="46" width="48" height="388" fill="#181818"/>
+  <line x1="62" y1="46" x2="62" y2="434" stroke="#2b2b2b"/>
+  <rect x="62" y="46" width="240" height="388" fill="#181818"/>
+  <rect x="14" y="434" width="872" height="32" fill="#181818"/>
+  <rect x="14" y="456" width="872" height="10" fill="#181818"/>
+  <line x1="14" y1="434" x2="886" y2="434" stroke="#2b2b2b"/>
+
+  <!-- dimmed background hint -->
+  <text x="78" y="70" font-size="11" fill="#5c5c5c" letter-spacing="1.2">EXPLORER</text>
+  <text x="346" y="150" font-size="24" fill="#3c3c3c">Visual Studio Code</text>
+
+  <!-- command palette, step A -->
+  <rect x="248" y="56" width="404" height="30" rx="5" fill="#252526" stroke="#454545"/>
+  <text x="262" y="76" font-size="13" fill="#dcdcdc" font-family="ui-monospace, 'Cascadia Code', Consolas, monospace">&gt;Git: Clone</text>
+  <rect x="248" y="88" width="404" height="72" rx="5" fill="#252526" stroke="#454545"/>
+  <rect x="250" y="90" width="400" height="26" fill="#04395e"/>
+  <text x="262" y="108" font-size="12.5" fill="#ffffff">Git: Clone</text>
+  <text x="262" y="134" font-size="12.5" fill="#bdbdbd">Git: Clone (Recursive)</text>
+  <text x="262" y="154" font-size="12.5" fill="#bdbdbd">Git: Fetch</text>
+  <circle cx="232" cy="71" r="13" fill="#f0a500"/>
+  <text x="232" y="76" font-size="13" font-weight="700" fill="#1a1a1a" text-anchor="middle">1</text>
+
+  <!-- arrow down -->
+  <path d="M450 176 v34" stroke="#f0a500" stroke-width="2" fill="none"/>
+  <path d="M444 208 l6 12 l6 -12 z" fill="#f0a500"/>
+
+  <!-- command palette, step B -->
+  <rect x="248" y="226" width="404" height="30" rx="5" fill="#252526" stroke="#454545"/>
+  <text x="262" y="246" font-size="11.5" fill="#dcdcdc" font-family="ui-monospace, 'Cascadia Code', Consolas, monospace">https://github.com/ChampionApe/EnergyEconomics.git</text>
+  <rect x="248" y="258" width="404" height="52" rx="5" fill="#252526" stroke="#454545"/>
+  <rect x="250" y="260" width="400" height="26" fill="#04395e"/>
+  <text x="262" y="278" font-size="12.5" fill="#ffffff">Clone from URL</text>
+  <text x="262" y="303" font-size="12.5" fill="#bdbdbd">Clone from GitHub</text>
+  <circle cx="232" cy="241" r="13" fill="#f0a500"/>
+  <text x="232" y="246" font-size="13" font-weight="700" fill="#1a1a1a" text-anchor="middle">2</text>
+
+  <!-- notification toast -->
+  <rect x="600" y="336" width="272" height="84" rx="6" fill="#252526" stroke="#454545"/>
+  <text x="616" y="360" font-size="12.5" fill="#dcdcdc">Would you like to open the cloned</text>
+  <text x="616" y="378" font-size="12.5" fill="#dcdcdc">repository?</text>
+  <rect x="616" y="390" width="52" height="22" rx="3" fill="#0078d4"/>
+  <text x="642" y="405" font-size="11.5" fill="#ffffff" text-anchor="middle">Open</text>
+  <rect x="672" y="390" width="112" height="22" rx="3" fill="#313131" stroke="#3c3c3c"/>
+  <text x="728" y="405" font-size="11.5" fill="#cccccc" text-anchor="middle">Add to Workspace</text>
+  <circle cx="588" cy="401" r="13" fill="#f0a500"/>
+  <text x="588" y="406" font-size="13" font-weight="700" fill="#1a1a1a" text-anchor="middle">3</text>
+
+  <text x="16" y="500" font-size="13.5" fill="#e6e6e6"><tspan fill="#f0a500" font-weight="700">1</tspan>  Ctrl+Shift+P (Cmd+Shift+P on a Mac), then type <tspan font-family="ui-monospace, Consolas, monospace" fill="#9cdcfe">Git: Clone</tspan>.</text>
+  <text x="16" y="521" font-size="13.5" fill="#e6e6e6"><tspan fill="#f0a500" font-weight="700">2</tspan>  Paste the repository address, press Enter, then pick a folder to put it in — Documents is fine.</text>
+  <text x="16" y="542" font-size="13.5" fill="#e6e6e6"><tspan fill="#f0a500" font-weight="700">3</tspan>  Say <tspan fill="#ffffff">Open</tspan>. This is the step that matters: it opens the repository as your workspace.</text>
+</svg>

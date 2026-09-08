@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 590" width="900" height="590" font-family="ui-sans-serif, 'Segoe UI', system-ui, sans-serif">
+  <title>Asking the assistant to install the rest</title>
+  <desc>A chat exchange: the student says which operating system they are on and what they already have, and the assistant replies with the exact commands for that setup.</desc>
+
+  <rect x="0" y="0" width="900" height="590" rx="10" fill="#0b0b0b"/>
+  <rect x="14" y="14" width="872" height="470" rx="8" fill="#1f1f1f" stroke="#3a3a3a"/>
+  <rect x="14" y="14" width="872" height="32" rx="8" fill="#181818"/>
+  <rect x="14" y="36" width="872" height="10" fill="#181818"/>
+  <text x="34" y="35" font-size="11" fill="#bbbbbb" letter-spacing="1.2">CHAT</text>
+  <rect x="90" y="21" width="132" height="19" rx="4" fill="#2b2b2b" stroke="#454545"/>
+  <text x="102" y="34" font-size="10.5" fill="#cccccc">&#128193; EnergyEconomics</text>
+  <line x1="14" y1="46" x2="886" y2="46" stroke="#2b2b2b"/>
+
+  <!-- user turn -->
+  <circle cx="42" cy="76" r="12" fill="#3d5872"/>
+  <text x="42" y="81" font-size="11" fill="#ffffff" text-anchor="middle" font-weight="700">Y</text>
+  <text x="64" y="72" font-size="12.5" fill="#e6e6e6" font-weight="700">You</text>
+  <text x="64" y="96" font-size="13" fill="#cccccc"><tspan font-family="ui-monospace, Consolas, monospace" fill="#9cdcfe">/debug-my-setup</tspan> I am on Windows 11 and I have never installed Python before.</text>
+  <text x="64" y="116" font-size="13" fill="#cccccc">Walk me through getting the packages in <tspan font-family="ui-monospace, Consolas, monospace" fill="#9cdcfe">environment.yml</tspan> working, one step at a time.</text>
+
+  <!-- assistant turn -->
+  <circle cx="42" cy="156" r="12" fill="#3f5a3f"/>
+  <text x="42" y="161" font-size="11" fill="#ffffff" text-anchor="middle" font-weight="700">A</text>
+  <text x="64" y="152" font-size="12.5" fill="#e6e6e6" font-weight="700">Course assistant</text>
+  <text x="64" y="176" font-size="13" fill="#cccccc">Conda is the shortest path on Windows. Three steps.</text>
+
+  <text x="64" y="204" font-size="13" fill="#cccccc">1.  Install Anaconda from anaconda.com/download, default settings all the way.</text>
+  <text x="64" y="228" font-size="13" fill="#cccccc">2.  Open <tspan fill="#ffffff">Anaconda Prompt</tspan> from the Start menu and move into the repository:</text>
+  <rect x="80" y="238" width="700" height="28" rx="4" fill="#141414" stroke="#333333"/>
+  <text x="94" y="257" font-size="12" fill="#d4d4d4" font-family="ui-monospace, 'Cascadia Code', Consolas, monospace">cd %USERPROFILE%\Documents\EnergyEconomics</text>
+
+  <text x="64" y="292" font-size="13" fill="#cccccc">3.  Build the environment. It takes a few minutes and prints a lot; that is normal.</text>
+  <rect x="80" y="302" width="700" height="50" rx="4" fill="#141414" stroke="#333333"/>
+  <text x="94" y="321" font-size="12" fill="#d4d4d4" font-family="ui-monospace, 'Cascadia Code', Consolas, monospace">conda env create -f environment.yml</text>
+  <text x="94" y="341" font-size="12" fill="#d4d4d4" font-family="ui-monospace, 'Cascadia Code', Consolas, monospace">conda activate EE2026</text>
+
+  <text x="64" y="378" font-size="13" fill="#cccccc">Paste me whatever the last command prints and we will do the VS Code side next.</text>
+
+  <rect x="64" y="396" width="188" height="20" rx="4" fill="#1e2a1e" stroke="#3f5a3f"/>
+  <text x="76" y="410" font-size="10.5" fill="#b7dcb7" font-family="ui-monospace, Consolas, monospace">read environment.yml</text>
+
+  <rect x="64" y="440" width="700" height="30" rx="6" fill="#252526" stroke="#454545"/>
+  <text x="78" y="460" font-size="12.5" fill="#6a6a6a">Ask about the course material...</text>
+
+  <!-- legend -->
+  <text x="16" y="518" font-size="13.5" fill="#e6e6e6" font-weight="700">Three things made that answer useful, and none of them is the model:</text>
+  <text x="16" y="542" font-size="13" fill="#bdbdbd">&#8226;  You named your operating system, so it gave a Windows command and not a menu of three.</text>
+  <text x="16" y="562" font-size="13" fill="#bdbdbd">&#8226;  You said what you already had — nothing — so it started at the beginning instead of guessing.</text>
+  <text x="16" y="582" font-size="13" fill="#bdbdbd">&#8226;  You named a file in the repository, so it opened the real package list rather than inventing one.</text>
+</svg>

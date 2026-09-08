@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 570" width="900" height="570" font-family="ui-sans-serif, 'Segoe UI', system-ui, sans-serif">
+  <title>The chat panel with the course slash commands</title>
+  <desc>VS Code with the Copilot chat panel open on the right. A context chip shows the workspace name EnergyEconomics, and typing a slash opens a menu listing the six course skills.</desc>
+
+  <rect x="0" y="0" width="900" height="570" rx="10" fill="#0b0b0b"/>
+  <rect x="14" y="14" width="872" height="452" rx="8" fill="#1f1f1f" stroke="#3a3a3a"/>
+  <rect x="14" y="14" width="872" height="32" rx="8" fill="#181818"/>
+  <rect x="14" y="36" width="872" height="10" fill="#181818"/>
+  <text x="450" y="35" font-size="12" fill="#9d9d9d" text-anchor="middle">E1-dispatch.ipynb — EnergyEconomics — Visual Studio Code</text>
+  <line x1="14" y1="46" x2="886" y2="46" stroke="#2b2b2b"/>
+
+  <rect x="14" y="46" width="48" height="388" fill="#181818"/>
+  <line x1="62" y1="46" x2="62" y2="434" stroke="#2b2b2b"/>
+  <g stroke="#7d7d7d" stroke-width="1.4" fill="none">
+    <path d="M30 66 h12 l6 6 v14 h-18 z"/>
+    <circle cx="35" cy="110" r="6"/><path d="M40 115 l6 6"/>
+    <circle cx="31" cy="148" r="4"/><circle cx="43" cy="140" r="4"/><circle cx="43" cy="160" r="4"/>
+    <path d="M31 152 v4 q0 4 6 4 h2"/><path d="M43 144 v12"/>
+  </g>
+
+  <!-- editor -->
+  <rect x="62" y="46" width="458" height="34" fill="#181818"/>
+  <rect x="62" y="46" width="140" height="34" fill="#1f1f1f"/>
+  <rect x="62" y="46" width="140" height="2" fill="#0078d4"/>
+  <text x="78" y="68" font-size="12" fill="#cccccc">E1-dispatch.ipynb</text>
+  <line x1="62" y1="80" x2="520" y2="80" stroke="#2b2b2b"/>
+  <rect x="80" y="98" width="420" height="72" rx="4" fill="#252526" stroke="#333333"/>
+  <g font-family="ui-monospace, 'Cascadia Code', Consolas, monospace" font-size="11.5">
+    <text x="94" y="120" fill="#6a9955"># solve the dispatch model for one day</text>
+    <text x="94" y="140" fill="#c586c0">m<tspan fill="#d4d4d4"> = </tspan><tspan fill="#dcdcaa">Dispatch</tspan><tspan fill="#d4d4d4">(hours=24)</tspan></text>
+    <text x="94" y="160" fill="#d4d4d4">res = m.solve()</text>
+  </g>
+  <rect x="80" y="182" width="420" height="52" rx="4" fill="#252526" stroke="#333333"/>
+  <g font-family="ui-monospace, 'Cascadia Code', Consolas, monospace" font-size="11.5">
+    <text x="94" y="204" fill="#d4d4d4">res.prices.plot()</text>
+    <text x="94" y="224" fill="#6a6a6a">...</text>
+  </g>
+
+  <!-- chat panel -->
+  <line x1="520" y1="46" x2="520" y2="434" stroke="#2b2b2b"/>
+  <rect x="520" y="46" width="366" height="388" fill="#1f1f1f"/>
+  <rect x="520" y="46" width="366" height="30" fill="#181818"/>
+  <text x="536" y="66" font-size="11" fill="#bbbbbb" letter-spacing="1.2">CHAT</text>
+  <text x="860" y="66" font-size="13" fill="#8a8a8a" text-anchor="middle">&#43;</text>
+
+  <rect x="528" y="88" width="132" height="22" rx="4" fill="#2b2b2b" stroke="#454545"/>
+  <text x="542" y="103" font-size="10.5" fill="#cccccc">&#128193; EnergyEconomics</text>
+  <text x="528" y="130" font-size="11" fill="#6a6a6a">The workspace is attached, so the assistant can read the course files.</text>
+
+  <!-- slash menu -->
+  <rect x="528" y="148" width="350" height="240" rx="6" fill="#252526" stroke="#454545"/>
+  <rect x="530" y="150" width="346" height="38" fill="#04395e"/>
+  <g font-size="12">
+    <text x="544" y="167" fill="#ffffff" font-weight="600" font-family="ui-monospace, Consolas, monospace">/hint</text>
+    <text x="544" y="182" fill="#c8d8e4" font-size="10.5">One nudge on the problem you are stuck on</text>
+    <text x="544" y="207" fill="#dcdcdc" font-weight="600" font-family="ui-monospace, Consolas, monospace">/exercise-coach</text>
+    <text x="544" y="222" fill="#8f8f8f" font-size="10.5">Work through a problem step by step</text>
+    <text x="544" y="247" fill="#dcdcdc" font-weight="600" font-family="ui-monospace, Consolas, monospace">/model-explainer</text>
+    <text x="544" y="262" fill="#8f8f8f" font-size="10.5">What a piece of model code means economically</text>
+    <text x="544" y="287" fill="#dcdcdc" font-weight="600" font-family="ui-monospace, Consolas, monospace">/check-my-reasoning</text>
+    <text x="544" y="302" fill="#8f8f8f" font-size="10.5">Critique an argument you have written</text>
+    <text x="544" y="327" fill="#dcdcdc" font-weight="600" font-family="ui-monospace, Consolas, monospace">/debug-my-setup</text>
+    <text x="544" y="342" fill="#8f8f8f" font-size="10.5">Installation, environment and import problems</text>
+    <text x="544" y="367" fill="#dcdcdc" font-weight="600" font-family="ui-monospace, Consolas, monospace">/exam-prep</text>
+    <text x="544" y="382" fill="#8f8f8f" font-size="10.5">Practice problems and closed-book drilling</text>
+  </g>
+
+  <!-- input -->
+  <rect x="528" y="396" width="350" height="30" rx="6" fill="#252526" stroke="#0078d4" stroke-width="1.5"/>
+  <text x="542" y="416" font-size="13" fill="#dcdcdc" font-family="ui-monospace, Consolas, monospace">/</text>
+  <rect x="552" y="405" width="1.5" height="13" fill="#dcdcdc"/>
+
+  <!-- status bar -->
+  <rect x="14" y="434" width="872" height="32" fill="#181818"/>
+  <rect x="14" y="456" width="872" height="10" fill="#181818"/>
+  <line x1="14" y1="434" x2="886" y2="434" stroke="#2b2b2b"/>
+  <text x="34" y="454" font-size="11.5" fill="#cccccc">main</text>
+  <text x="700" y="454" font-size="11.5" fill="#cccccc">EE2026 (Python 3.12.7)</text>
+  <text x="830" y="454" font-size="11.5" fill="#cccccc">&#9679; Copilot</text>
+
+  <!-- callouts -->
+  <circle cx="676" cy="99" r="13" fill="#f0a500"/>
+  <text x="676" y="104" font-size="13" font-weight="700" fill="#1a1a1a" text-anchor="middle">1</text>
+  <circle cx="898" cy="169" r="0" fill="none"/>
+  <circle cx="510" cy="169" r="13" fill="#f0a500"/>
+  <text x="510" y="174" font-size="13" font-weight="700" fill="#1a1a1a" text-anchor="middle">2</text>
+  <circle cx="510" cy="411" r="13" fill="#f0a500"/>
+  <text x="510" y="416" font-size="13" font-weight="700" fill="#1a1a1a" text-anchor="middle">3</text>
+
+  <text x="16" y="500" font-size="13.5" fill="#e6e6e6"><tspan fill="#f0a500" font-weight="700">1</tspan>  The workspace chip. If it does not name the course repository, the assistant is answering blind — reopen the folder.</text>
+  <text x="16" y="522" font-size="13.5" fill="#e6e6e6"><tspan fill="#f0a500" font-weight="700">2</tspan>  Typing <tspan font-family="ui-monospace, Consolas, monospace" fill="#9cdcfe">/</tspan> lists the six course commands. They come from <tspan font-family="ui-monospace, Consolas, monospace" fill="#9cdcfe">.claude/skills/</tspan> in the repository, not from your editor.</text>
+  <text x="16" y="544" font-size="13.5" fill="#e6e6e6"><tspan fill="#f0a500" font-weight="700">3</tspan>  You never have to use them. Plain questions work; the commands are shortcuts to a particular kind of help.</text>
+</svg>

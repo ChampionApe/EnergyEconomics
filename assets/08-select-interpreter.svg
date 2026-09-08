@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 600" width="900" height="600" font-family="ui-sans-serif, 'Segoe UI', system-ui, sans-serif">
+  <title>Pointing VS Code at the course environment</title>
+  <desc>The Python: Select Interpreter list with the EE2026 environment chosen, the status bar showing it, and the separate kernel picker that a notebook needs.</desc>
+
+  <rect x="0" y="0" width="900" height="600" rx="10" fill="#0b0b0b"/>
+  <rect x="14" y="14" width="872" height="380" rx="8" fill="#1f1f1f" stroke="#3a3a3a"/>
+  <rect x="14" y="14" width="872" height="32" rx="8" fill="#181818"/>
+  <rect x="14" y="36" width="872" height="10" fill="#181818"/>
+  <text x="450" y="35" font-size="12" fill="#9d9d9d" text-anchor="middle">EnergyEconomics — Visual Studio Code</text>
+  <line x1="14" y1="46" x2="886" y2="46" stroke="#2b2b2b"/>
+  <rect x="14" y="46" width="48" height="316" fill="#181818"/>
+  <line x1="62" y1="46" x2="62" y2="362" stroke="#2b2b2b"/>
+  <rect x="62" y="46" width="200" height="316" fill="#181818"/>
+  <text x="78" y="70" font-size="11" fill="#5c5c5c" letter-spacing="1.2">EXPLORER</text>
+
+  <!-- palette -->
+  <rect x="200" y="56" width="500" height="30" rx="5" fill="#252526" stroke="#454545"/>
+  <text x="214" y="76" font-size="12.5" fill="#6a6a6a">Selected Interpreter: EE2026</text>
+  <rect x="200" y="88" width="500" height="176" rx="5" fill="#252526" stroke="#454545"/>
+
+  <rect x="202" y="90" width="496" height="40" fill="#04395e"/>
+  <text x="216" y="108" font-size="12.5" fill="#ffffff" font-weight="600">EE2026 (Python 3.12.7)</text>
+  <rect x="404" y="96" width="82" height="16" rx="3" fill="#0078d4"/>
+  <text x="445" y="108" font-size="10" fill="#ffffff" text-anchor="middle">Recommended</text>
+  <text x="216" y="124" font-size="11" fill="#c8d8e4" font-family="ui-monospace, Consolas, monospace">~\anaconda3\envs\EE2026\python.exe</text>
+
+  <text x="216" y="150" font-size="12.5" fill="#dcdcdc">base (Python 3.12.4)</text>
+  <text x="216" y="166" font-size="11" fill="#8f8f8f" font-family="ui-monospace, Consolas, monospace">~\anaconda3\python.exe</text>
+
+  <text x="216" y="192" font-size="12.5" fill="#dcdcdc">Python 3.13.1 64-bit</text>
+  <text x="216" y="208" font-size="11" fill="#8f8f8f" font-family="ui-monospace, Consolas, monospace">C:\Python313\python.exe</text>
+
+  <line x1="202" y1="222" x2="698" y2="222" stroke="#3c3c3c"/>
+  <text x="216" y="244" font-size="12.5" fill="#dcdcdc">Enter interpreter path...</text>
+
+  <circle cx="184" cy="110" r="13" fill="#f0a500"/>
+  <text x="184" y="115" font-size="13" font-weight="700" fill="#1a1a1a" text-anchor="middle">1</text>
+
+  <!-- status bar -->
+  <rect x="14" y="362" width="872" height="32" fill="#181818"/>
+  <rect x="14" y="384" width="872" height="10" fill="#181818"/>
+  <line x1="14" y1="362" x2="886" y2="362" stroke="#2b2b2b"/>
+  <text x="34" y="382" font-size="11.5" fill="#cccccc">main</text>
+  <rect x="676" y="366" width="150" height="24" rx="3" fill="#04395e"/>
+  <text x="751" y="382" font-size="11.5" fill="#ffffff" text-anchor="middle">EE2026 (Python 3.12.7)</text>
+  <circle cx="854" cy="378" r="13" fill="#f0a500"/>
+  <text x="854" y="383" font-size="13" font-weight="700" fill="#1a1a1a" text-anchor="middle">2</text>
+
+  <!-- kernel card -->
+  <rect x="14" y="410" width="872" height="76" rx="8" fill="#141414" stroke="#2e2e2e"/>
+  <text x="30" y="434" font-size="12.5" fill="#bdbdbd">A notebook asks separately. Top right of the notebook, the button has to stop saying this:</text>
+  <rect x="30" y="446" width="150" height="26" rx="4" fill="#313131" stroke="#3c3c3c"/>
+  <text x="105" y="463" font-size="12" fill="#cccccc" text-anchor="middle">Select Kernel</text>
+  <path d="M194 459 h34" stroke="#f0a500" stroke-width="2" fill="none"/>
+  <path d="M226 453 l12 6 l-12 6 z" fill="#f0a500"/>
+  <rect x="246" y="446" width="200" height="26" rx="4" fill="#1e2a1e" stroke="#3f5a3f"/>
+  <text x="346" y="463" font-size="12" fill="#b7dcb7" text-anchor="middle">EE2026 (Python 3.12.7)</text>
+  <circle cx="470" cy="459" r="13" fill="#f0a500"/>
+  <text x="470" y="464" font-size="13" font-weight="700" fill="#1a1a1a" text-anchor="middle">3</text>
+
+  <!-- legend -->
+  <text x="16" y="518" font-size="13.5" fill="#e6e6e6"><tspan fill="#f0a500" font-weight="700">1</tspan>  Ctrl+Shift+P, <tspan font-family="ui-monospace, Consolas, monospace" fill="#9cdcfe">Python: Select Interpreter</tspan>, then the one whose name is <tspan font-family="ui-monospace, Consolas, monospace" fill="#9cdcfe">EE2026</tspan>. Not <tspan font-family="ui-monospace, Consolas, monospace">base</tspan>.</text>
+  <text x="16" y="540" font-size="13.5" fill="#e6e6e6"><tspan fill="#f0a500" font-weight="700">2</tspan>  The status bar then names it. This is the single fastest way to check you are in the right environment.</text>
+  <text x="16" y="562" font-size="13.5" fill="#e6e6e6"><tspan fill="#f0a500" font-weight="700">3</tspan>  Notebooks keep their own choice. Set it once per notebook; VS Code remembers it afterwards.</text>
+  <text x="16" y="588" font-size="12.5" fill="#8f8f8f">On a Mac the path reads <tspan font-family="ui-monospace, Consolas, monospace">/opt/anaconda3/envs/EE2026/bin/python</tspan> instead. The name in front of it is the part that matters.</text>
+</svg>

@@ -7,7 +7,7 @@ Economics, University of Copenhagen.
 
 | | |
 |---|---|
-| [`INSTALL.md`](INSTALL.md) | Setting up Python, if you want a walkthrough |
+| [`INSTALL.md`](INSTALL.md) | Step-by-step setup: VS Code, this repository, the assistant, Python |
 | [`AI-POLICY.md`](AI-POLICY.md) | Using AI in this course |
 | [`environment.yml`](environment.yml) | The packages the material needs |
 | [`CURRICULUM.md`](CURRICULUM.md) | The reading list, and where to find the papers |
@@ -50,9 +50,11 @@ answers — [`AI-POLICY.md`](AI-POLICY.md) explains what it does and why.
 
 It works with **GitHub Copilot**, free for verified students through the
 [GitHub Student Developer Pack](https://education.github.com/pack), and with Claude,
-Mistral, and whatever they are all called. Both read the same configuration from this
-repository, so there is nothing to install beyond the tool itself: clone the repo,
-open it, and the assistant is there.
+Mistral, and whatever they are all called. They all read the same configuration from
+this repository, so there is nothing to install beyond the tool itself: clone the repo,
+open it as a folder, and the assistant is there. If that sentence sounds like it is
+skipping a step, it is not — [`INSTALL.md`](INSTALL.md) walks through it with pictures
+and explains why opening the folder is the whole of the setup.
 
 Ask it things directly, or use:
 

@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 470" width="900" height="470" font-family="ui-sans-serif, 'Segoe UI', system-ui, sans-serif">
+  <title>What a working setup looks like</title>
+  <desc>The VS Code terminal with the environment name in the prompt, running the import check, and printing ok.</desc>
+
+  <rect x="0" y="0" width="900" height="470" rx="10" fill="#0b0b0b"/>
+  <rect x="14" y="14" width="872" height="330" rx="8" fill="#1f1f1f" stroke="#3a3a3a"/>
+  <rect x="14" y="14" width="872" height="32" rx="8" fill="#181818"/>
+  <rect x="14" y="36" width="872" height="10" fill="#181818"/>
+  <text x="450" y="35" font-size="12" fill="#9d9d9d" text-anchor="middle">EnergyEconomics — Visual Studio Code</text>
+  <line x1="14" y1="46" x2="886" y2="46" stroke="#2b2b2b"/>
+
+  <!-- panel tabs -->
+  <rect x="14" y="46" width="872" height="30" fill="#181818"/>
+  <g font-size="11" letter-spacing="0.8">
+    <text x="34" y="66" fill="#8a8a8a">PROBLEMS</text>
+    <text x="110" y="66" fill="#8a8a8a">OUTPUT</text>
+    <text x="172" y="66" fill="#8a8a8a">DEBUG CONSOLE</text>
+    <text x="288" y="66" fill="#ffffff">TERMINAL</text>
+  </g>
+  <rect x="286" y="74" width="66" height="2" fill="#0078d4"/>
+  <line x1="14" y1="76" x2="886" y2="76" stroke="#2b2b2b"/>
+
+  <!-- terminal -->
+  <g font-family="ui-monospace, 'Cascadia Code', Consolas, monospace" font-size="12.5">
+    <text x="34" y="106" fill="#4ec9b0">(EE2026)<tspan fill="#569cd6"> C:\Users\you\Documents\EnergyEconomics</tspan><tspan fill="#d4d4d4">&gt;</tspan></text>
+    <text x="34" y="126" fill="#d4d4d4">python -c "import pandas, numpy, scipy, pypsa, highspy; print('ok')"</text>
+    <text x="34" y="152" fill="#b5cea8">ok</text>
+    <text x="34" y="188" fill="#4ec9b0">(EE2026)<tspan fill="#569cd6"> C:\Users\you\Documents\EnergyEconomics</tspan><tspan fill="#d4d4d4">&gt;</tspan></text>
+    <rect x="396" y="178" width="7" height="14" fill="#d4d4d4"/>
+  </g>
+
+  <text x="34" y="240" font-size="12.5" fill="#6a6a6a">Nothing else is supposed to happen. No window opens, no progress bar. Two letters and you are set up.</text>
+
+  <!-- status bar -->
+  <rect x="14" y="312" width="872" height="32" fill="#181818"/>
+  <rect x="14" y="334" width="872" height="10" fill="#181818"/>
+  <line x1="14" y1="312" x2="886" y2="312" stroke="#2b2b2b"/>
+  <text x="34" y="332" font-size="11.5" fill="#cccccc">main</text>
+  <text x="716" y="332" font-size="11.5" fill="#cccccc">EE2026 (Python 3.12.7)</text>
+  <g stroke="#8a8a8a" stroke-width="1.3" fill="none">
+    <rect x="838" y="320" width="20" height="13" rx="6"/>
+    <path d="M838 324 q-4 -6 2 -8 M858 324 q4 -6 -2 -8"/>
+  </g>
+  <circle cx="844" cy="327" r="1.5" fill="#8a8a8a"/>
+  <circle cx="852" cy="327" r="1.5" fill="#8a8a8a"/>
+  <path d="M834 337 l28 -20" stroke="#e08b8b" stroke-width="1.8" fill="none"/>
+
+  <circle cx="86" cy="101" r="13" fill="#f0a500" fill-opacity="0.001" stroke="none"/>
+  <circle cx="640" cy="100" r="13" fill="#f0a500"/>
+  <text x="640" y="105" font-size="13" font-weight="700" fill="#1a1a1a" text-anchor="middle">1</text>
+  <path d="M624 100 h-190" stroke="#f0a500" stroke-width="1.5" fill="none"/>
+  <path d="M442 94 l-12 6 l12 6 z" fill="#f0a500"/>
+
+  <circle cx="120" cy="147" r="13" fill="#f0a500"/>
+  <text x="120" y="152" font-size="13" font-weight="700" fill="#1a1a1a" text-anchor="middle">2</text>
+  <path d="M104 147 h-42" stroke="#f0a500" stroke-width="1.5" fill="none"/>
+  <path d="M70 141 l-12 6 l12 6 z" fill="#f0a500"/>
+
+  <text x="16" y="382" font-size="13.5" fill="#e6e6e6"><tspan fill="#f0a500" font-weight="700">1</tspan>  <tspan font-family="ui-monospace, Consolas, monospace" fill="#4ec9b0">(EE2026)</tspan> in front of the prompt. The environment is active in <tspan font-style="italic">this</tspan> terminal. A new terminal may need activating again.</text>
+  <text x="16" y="404" font-size="13.5" fill="#e6e6e6"><tspan fill="#f0a500" font-weight="700">2</tspan>  <tspan font-family="ui-monospace, Consolas, monospace" fill="#b5cea8">ok</tspan>, and nothing else. Every package the course needs imported. You are done.</text>
+  <text x="16" y="432" font-size="12.5" fill="#8f8f8f">If instead you get a <tspan font-family="ui-monospace, Consolas, monospace">ModuleNotFoundError</tspan>, copy the whole thing into the chat with <tspan font-family="ui-monospace, Consolas, monospace" fill="#9cdcfe">/debug-my-setup</tspan> — the whole thing, not a summary.</text>
+  <text x="16" y="456" font-size="12.5" fill="#8f8f8f">The prompt looks different on a Mac: <tspan font-family="ui-monospace, Consolas, monospace">(EE2026) you@macbook EnergyEconomics %</tspan>. The bracket at the front is the part to look for.</text>
+</svg>

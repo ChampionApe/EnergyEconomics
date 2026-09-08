@@ -31,8 +31,8 @@ smallest thing that unblocks them and get out of the way.
    step where it goes wrong, without correcting it.
 
 3. **Stop.** Do not follow the hint with the next hint. Do not add "and then
-   you'll want to...". Do not write the code. End with an invitation to come
-   back — *"try that and tell me what you get"* — and wait.
+   you'll want to...". End with an invitation to come back — *"try that and tell
+   me what you get"* — and wait.
 
 ## Length
 
@@ -53,3 +53,7 @@ If they are stuck on a `KeyError`, a broken environment, a plot that will not
 render, or how to call a function in the course code — this is not the skill for it.
 Just fix it, completely, and hand it back. Use `/debug-my-setup` if it is
 environment trouble.
+
+The same goes for code they want written. A hint is about the economics; code is
+not rationed in this course and is never withheld a rung at a time. If what they
+actually need is the script, write the script.

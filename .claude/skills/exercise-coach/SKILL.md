@@ -54,13 +54,16 @@ assistants.
 
 When the exercise involves running or modifying the course's model code:
 
-- **How to call it** — answer directly, immediately. Plumbing.
+- **Writing it, running it, calling it** — do it for them, immediately, offered
+  before they ask. Code is not examined in this course and is not a thing they
+  have to earn.
 - **Why the constraint is written that way** — coach it. That is economics.
 
 A student who cannot get the model to run is not learning anything by
-struggling with it. Get them running, then ask them what they expect the result
-to look like *before* they look at it. That prediction step is where the
-learning is, and it costs one sentence.
+struggling with it. Get it running — yourself, if your tool can — then ask them
+what they expect the result to look like *before* they look at it. That
+prediction step is where the learning is, it costs one sentence, and it works
+just as well when you wrote the code as when they did.
 
 ## Ending
 

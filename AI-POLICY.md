@@ -1,6 +1,7 @@
 # Using AI in this course
 
-Short version: **use it, and turn off autocomplete while you work the exercises.**
+Short version: **use it, let it write your code if you would rather not, and
+turn off autocomplete when you are writing prose.**
 
 ## What you are allowed to do
 
@@ -25,26 +26,56 @@ mode that matters. Students who worked every problem set with an AI answering
 them do not arrive under-prepared in their own estimation — they arrive
 confident and under-prepared, which is worse, because they stopped revising.
 
-So the assistant in this repository is built to make you do the retrieval: it
-starts with a question rather than an answer, and works up from there. Not to
-withhold help — you can ask it for the answer at any point and it will give you
-one. It defaults to questions because that is what transfers to the exam room.
+So on the economics, the assistant in this repository is built to make you do the
+retrieval: it starts with a question rather than an answer, and works up from
+there. Not to withhold help — you can ask it for the answer at any point and it
+will give you one. It defaults to questions because that is what transfers to the
+exam room.
 
-## Turn off inline autocomplete for the exercises
+On code it does the opposite, and the next section explains why.
 
-This is the one concrete request in this document, and it matters more than
-anything else here.
+## You do not have to learn Python
+
+This is a course in economics. Programming is a tool it uses, not a subject it
+teaches, and there is no code at the exam — you will not be asked to write any,
+read any, or explain any.
+
+So if you would rather not spend this term learning Python, don't. Ask the
+assistant to write the code and to run it, and it will: no argument, no asking
+you to try it yourself first, no making you ask twice. Tell it once that this is
+how you want to work and it will keep working that way.
+
+Two things stay yours either way, and they are the two the exam is about:
+
+- **Guessing the answer before you see it.** The assistant will ask you what you
+  expect the result to look like before it shows you. One sentence. Do not skip
+  it — it is most of what the exercise is for.
+- **Saying what it means.** Why the constraint binds, what the shadow price is
+  telling you, what moves when the carbon price rises. Here the assistant will
+  keep asking you questions rather than handing over answers, because this is the
+  part you need to be able to do alone.
+
+Learning some Python is still worth doing if you want to — it is a useful skill
+and the models are more legible from the inside. If that is what you want, say so
+and the assistant will stay out of your way instead.
+
+## Turn off inline autocomplete when you write prose
+
+This is the one concrete request in this document.
 
 GitHub Copilot's **inline completions** — the grey ghost text that appears as you
-type — will happily complete an entire exercise answer for you before you have
-finished reading the question. They are not governed by the
-instructions in this repository; those apply to Copilot **Chat** and agent mode,
-not to completions. So the course assistant's behaviour has no effect on
-autocomplete whatsoever.
+type — are not governed by anything in this repository. The course assistant's
+instructions reach Copilot **Chat** and agent mode; they have no effect on
+completions whatsoever.
 
-Autocomplete is also the part of Copilot that is effectively unlimited on the
-free student plan, while chat is metered. The cheapest surface is the one that
-does the most damage to your preparation. Be deliberate about it.
+For code that no longer matters much: if you want the code written for you, ask,
+and you will get something better than a guess from a model that cannot see what
+you are trying to do. Prose is the problem. When you are writing out what a
+result means — in a notebook cell, in your notes, in a draft answer — ghost text
+will finish the sentence for you, and that sentence is precisely what the exam
+asks you to produce unaided. Watching a plausible interpretation appear feels
+like having had the thought. It is not the same thought, and the difference only
+becomes visible in the exam room, which is too late to discover it.
 
 **In VS Code:** click the Copilot status-bar icon and *Disable Completions* (you
 can scope it to this workspace). Chat stays on.
@@ -55,7 +86,8 @@ the time you will locate your own confusion in the act of writing it down.
 ## What the assistant will not do
 
 - Write hand-in text for you to submit as your own. It will critique a draft you
-  wrote; it will not produce the draft.
+  wrote; it will not produce the draft. This is about your written economics, not
+  your code — it will write as much Python as you like.
 - Tell you anything about exam content. It has no access to it.
 
 ## If you do not have Copilot or Claude

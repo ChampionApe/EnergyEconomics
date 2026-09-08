@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 540" width="900" height="540" font-family="ui-sans-serif, 'Segoe UI', system-ui, sans-serif">
+  <title>What "giving the AI context" means</title>
+  <desc>Two panels. On the left, a chat with no folder open: only your question reaches the model, and the answer is generic. On the right, the repository open as a folder: the question plus CLAUDE.md, the skills, the notes, the model code and the open file all reach the model, and the answer uses the course's own notation and cites a file.</desc>
+
+  <rect x="0" y="0" width="900" height="540" rx="10" fill="#0b0b0b"/>
+
+  <!-- LEFT PANEL -->
+  <rect x="14" y="14" width="420" height="430" rx="8" fill="#141414" stroke="#2e2e2e"/>
+  <text x="30" y="42" font-size="13.5" fill="#e6e6e6" font-weight="700">Chat, with no folder open</text>
+  <text x="30" y="62" font-size="12" fill="#8f8f8f">What most people picture when they hear "ask the AI"</text>
+
+  <rect x="28" y="166" width="180" height="28" rx="14" fill="#233241" stroke="#3d5872"/>
+  <text x="118" y="185" font-size="12.5" fill="#cfe4f7" text-anchor="middle">Your question</text>
+  <path d="M212 180 h30" stroke="#5f7d99" stroke-width="1.8" fill="none"/>
+  <path d="M240 174 l12 6 l-12 6 z" fill="#5f7d99"/>
+
+  <rect x="252" y="140" width="172" height="80" rx="8" fill="#1e1e1e" stroke="#4a4a4a"/>
+  <text x="338" y="172" font-size="13" fill="#e6e6e6" text-anchor="middle" font-weight="600">The assistant</text>
+  <text x="338" y="194" font-size="11.5" fill="#8f8f8f" text-anchor="middle">sees: your question</text>
+
+  <path d="M338 224 v88" stroke="#5f7d99" stroke-width="1.8" fill="none"/>
+  <path d="M332 310 l6 12 l6 -12 z" fill="#5f7d99"/>
+
+  <rect x="28" y="326" width="396" height="70" rx="6" fill="#1a1a1a" stroke="#3a3a3a"/>
+  <text x="44" y="350" font-size="12.5" fill="#bdbdbd">"In a dispatch model the price is usually the dual</text>
+  <text x="44" y="370" font-size="12.5" fill="#bdbdbd">of the demand constraint, sometimes written p or</text>
+  <text x="44" y="386" font-size="12.5" fill="#bdbdbd">&#960; depending on the textbook..."</text>
+
+  <text x="30" y="420" font-size="12.5" fill="#e08b8b">Fluent, generic, and in somebody else's notation.</text>
+
+  <!-- RIGHT PANEL -->
+  <rect x="466" y="14" width="420" height="430" rx="8" fill="#141414" stroke="#2e2e2e"/>
+  <text x="482" y="42" font-size="13.5" fill="#e6e6e6" font-weight="700">Chat, with the repository open as a folder</text>
+  <text x="482" y="62" font-size="12" fill="#8f8f8f">The same chat window. Nothing extra installed.</text>
+
+  <g font-size="11.5">
+    <rect x="480" y="78" width="180" height="28" rx="6" fill="#233241" stroke="#3d5872"/>
+    <text x="494" y="97" fill="#cfe4f7">Your question</text>
+    <rect x="480" y="114" width="180" height="28" rx="6" fill="#1e2a1e" stroke="#3f5a3f"/>
+    <text x="494" y="133" fill="#b7dcb7" font-family="ui-monospace, Consolas, monospace">CLAUDE.md</text>
+    <rect x="480" y="150" width="180" height="28" rx="6" fill="#1e2a1e" stroke="#3f5a3f"/>
+    <text x="494" y="169" fill="#b7dcb7" font-family="ui-monospace, Consolas, monospace">.claude/skills/</text>
+    <rect x="480" y="186" width="180" height="28" rx="6" fill="#1e2a1e" stroke="#3f5a3f"/>
+    <text x="494" y="205" fill="#b7dcb7">The lecture notes</text>
+    <rect x="480" y="222" width="180" height="28" rx="6" fill="#1e2a1e" stroke="#3f5a3f"/>
+    <text x="494" y="241" fill="#b7dcb7">The model code</text>
+    <rect x="480" y="258" width="180" height="28" rx="6" fill="#1e2a1e" stroke="#3f5a3f"/>
+    <text x="494" y="277" fill="#b7dcb7">The file you have open</text>
+  </g>
+
+  <path d="M660 92 h18 M660 128 h18 M660 164 h18 M660 200 h18 M660 236 h18 M660 272 h18" stroke="#5f7d99" stroke-width="1.5" fill="none"/>
+  <path d="M678 92 v180" stroke="#5f7d99" stroke-width="1.8" fill="none"/>
+  <path d="M678 180 h22" stroke="#5f7d99" stroke-width="1.8" fill="none"/>
+  <path d="M698 174 l12 6 l-12 6 z" fill="#5f7d99"/>
+
+  <rect x="710" y="140" width="164" height="80" rx="8" fill="#1e1e1e" stroke="#4a4a4a"/>
+  <text x="792" y="172" font-size="13" fill="#e6e6e6" text-anchor="middle" font-weight="600">The assistant</text>
+  <text x="792" y="194" font-size="11.5" fill="#8f8f8f" text-anchor="middle">sees: all of it</text>
+
+  <path d="M792 224 v88" stroke="#5f7d99" stroke-width="1.8" fill="none"/>
+  <path d="M786 310 l6 12 l6 -12 z" fill="#5f7d99"/>
+
+  <rect x="480" y="326" width="396" height="70" rx="6" fill="#1a1a1a" stroke="#3a3a3a"/>
+  <text x="496" y="350" font-size="12.5" fill="#bdbdbd">"In this course &#955; is the dual of market clearing and</text>
+  <text x="496" y="370" font-size="12.5" fill="#bdbdbd">&#956;&#8348; the scarcity rent — the notation bridge in</text>
+  <text x="496" y="386" font-size="12.5" fill="#9cdcfe" font-family="ui-monospace, Consolas, monospace">notes/energy-system-models/README.md</text>
+
+  <text x="482" y="420" font-size="12.5" fill="#8ec98e">The course's symbols, and a file you can go and check.</text>
+
+  <text x="450" y="480" font-size="14" fill="#f0a500" font-weight="700" text-anchor="middle">Same model. Same subscription. The only difference is what it can see.</text>
+  <text x="450" y="506" font-size="13" fill="#bdbdbd" text-anchor="middle">There is nothing to install to "get the course assistant". Opening the folder is the whole of it.</text>
+</svg>
