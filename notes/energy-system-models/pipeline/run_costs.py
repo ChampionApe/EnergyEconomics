@@ -16,7 +16,7 @@ This used to sweep technology-data's published vintages, 2025 to 2050, and
 that asked the wrong question. A vintage is a projection of what a machine
 costs in a *stated year*; sweeping them asks "what if it were 2035?" when
 section 7 has already fixed the horizon at 2050. What section 9 wants to know
-is what happens if 2050 turns out dearer or cheaper than projected, so the
+is what happens if 2050 turns out more costly or cheaper than projected, so the
 horizon is held and the projection is varied instead:
 
     trend       = investment(2025) - investment(2050)
@@ -53,7 +53,7 @@ from run_greenfield import REFERENCE_TAX, mix_row, solve_case
 
 RESULTS = NOTE / "results"
 
-# Ordered dearest to cheapest, which is the order figure 9.4 plots them in
+# Ordered most costly to cheapest, which is the order figure 9.4 plots them in
 # and the order the prose reads them in.
 COST_SCENARIOS = ["pessimistic", "baseline", "optimistic"]
 REFERENCE_SCENARIO = "baseline"  # what sections 7 and 9 solve on

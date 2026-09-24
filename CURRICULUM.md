@@ -101,18 +101,14 @@ summaries of them, and they assume you have read the note sections they build on
 - **Zerrahn, Schill and Kemfert (2018).** “On the Economics of Electrical Storage for Variable Renewable Energy Sources.” *European Economic Review* 108, 259–279.  
   [DOI](https://doi.org/10.1016/j.euroecorev.2018.07.004) · [Open version](https://arxiv.org/abs/1802.07885)
   
-  *The first workshop paper. How much storage a renewable system actually needs, and why the answer is lower than usually assumed. Its small analytical model maps onto section 4 of the note.*
-- **Ambec and Crampes (2021).** “Real-Time Electricity Pricing to Balance Green Energy Intermittency.” *Energy Economics* 94, 105074.  
-  [DOI](https://doi.org/10.1016/j.eneco.2020.105074) · [Open version](https://www.tse-fr.eu/sites/default/files/TSE/documents/doc/wp/2020/wp_tse_1087.pdf)
-  
-  *The second workshop paper. Flexible demand under real-time pricing as the alternative to storage, in a model small enough to solve by hand.*
+  *The first workshop paper. How much storage a renewable system actually needs, and why the answer is lower than usually assumed: curtailment is a substitute for storage. Read it for the argument and the numbers; the model behind it is section 4 of the note.*
 
 **Supplementary**
 
 - **Butters, Dorsey and Gowrisankaran (2025).** “Soaking up the Sun: Battery Investment, Renewable Energy, and Market Equilibrium.” *Econometrica* 93(3), 891–927.  
   [DOI](https://doi.org/10.3982/ECTA20411)
   
-  *Battery investment in a market with a lot of solar, estimated structurally. Heavier than the two papers above; read it for what arbitrage revenue alone can and cannot pay for.*
+  *Battery investment in a market with a lot of solar, estimated structurally. Heavier than Zerrahn et al.; read it for what arbitrage revenue alone can and cannot pay for.*
 
 
 ## 05. Sector coupling and transmission
@@ -213,7 +209,6 @@ summaries of them, and they assume you have read the note sections they build on
 
 For revision.
 
-- **Ambec and Crampes (2021).** “Real-Time Electricity Pricing to Balance Green Energy Intermittency.” *Energy Economics* 94, 105074.
 - **Berg (2026).** “A Simple Model of Abatement Costs.”
 - **Berg (2026).** “Energy System Models.”
 - **Berg (2026).** “Generation Technologies.”

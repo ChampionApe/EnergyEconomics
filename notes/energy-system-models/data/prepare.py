@@ -2479,7 +2479,7 @@ def prepare_offshore_premium():
 # 2025 to 2050 -- and that was never the question. A vintage is a projection
 # of what a machine costs in a stated year, not a draw from a distribution
 # over 2050, so sweeping them asks "what if it were 2035?" rather than "what
-# if 2050 turns out dearer than projected?".
+# if 2050 turns out more costly than projected?".
 #
 # What replaces it keeps the horizon fixed at FORWARD_HORIZON and varies the
 # projection instead. technology-data's own 2025 -> 2050 path is the only

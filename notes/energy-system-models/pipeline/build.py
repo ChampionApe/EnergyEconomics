@@ -1074,7 +1074,7 @@ def values_dispatch_t(d):
         "IntermittencyPriceMedian": f"{s['price_quantiles']['0.5']:.0f}",
         "IntermittencyPriceHigh": f"{s['price_quantiles']['0.95']:.0f}",
         "IntermittencyPriceMax": f"{s['price_max']:.0f}",
-        # Figure 3.4 cuts its axis above the dearest domestic plant and says
+        # Figure 3.4 cuts its axis above the most costly domestic plant and says
         # nothing about it; the caption reports what was left off.
         "PDCHoursAboveCut": f"{int((d['hours']['price'] > _pdc_levels(d)[2]).sum())}",
         # The model does reach negative prices -- but only through the
@@ -1249,7 +1249,7 @@ def fig_storage_week(d):
     axes[1].plot(window, soc, color="#009E73", linewidth=1.4)
     axes[1].set_ylabel("state of charge (GWh)")
     axes[1].grid(axis="y")
-    axes[1].set_title("(b) the battery fills in cheap hours, empties in dear ones",
+    axes[1].set_title("(b) the battery fills in cheap hours, empties in costly ones",
                       loc="left", fontsize=9, color=INK)
     axes[1].tick_params(axis="x", labelsize=7)
     fig.savefig(FIGURES / "storage_week.pdf")

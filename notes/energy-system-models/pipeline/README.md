@@ -70,7 +70,7 @@ build.
   overshoot it by half again, uniformly across technologies — see
   `data/processed/cost_scenarios.csv`. It used to sweep the published
   vintages 2025–2050, which asked "what if it were 2035?" rather than "what
-  if 2050 turns out dearer than projected?". Needs the cost files
+  if 2050 turns out more costly than projected?". Needs the cost files
   `data/prepare.py` builds, which are not shipped — their source's licence
   bars redistribution.
 - `run_expansion.py` — section 8: the three-rung expansion ladder on the
