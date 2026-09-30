@@ -122,14 +122,14 @@ summaries of them, and they assume you have read the note sections they build on
 - **Ruhnau, Hirth and Praktiknjo (2020).** “Heating with Wind: Economics of Heat Pumps and Variable Renewables.” *Energy Economics* 92, 104967.  
   [DOI](https://doi.org/10.1016/j.eneco.2020.104967) · [Open version](https://www.econstor.eu/handle/10419/219314)
   
-  *The first workshop paper. Whether heat pumps help or hinder wind integration, and why the answer depends on the season. Section 5 of the note runs the same experiment.*
-- **Gonzales, Ito and Reguant (2023).** “The Investment Effects of Market Integration: Evidence from Renewable Energy Expansion in Chile.” *Econometrica* 91(5), 1659–1693.  
-  [DOI](https://doi.org/10.3982/ECTA20769) · [Open version](https://koichiroito.com/pdfs/Market_Integration_Gonzales_Ito_Reguant.pdf)
-  
-  *The second workshop paper. Chile joined two grids, and renewable investment responded. The investment effect is the one thing the fixed-capacity model of section 6 cannot produce, which is the bridge to the next lecture.*
+  *The workshop paper. What heat pumps cost the power system, and why they do little for the value of wind once wind grows with them. Section 5 of the note couples heat and power the same way and ends with the paper's findings.*
 
 **Supplementary**
 
+- **Gonzales, Ito and Reguant (2023).** “The Investment Effects of Market Integration: Evidence from Renewable Energy Expansion in Chile.” *Econometrica* 91(5), 1659–1693.  
+  [DOI](https://doi.org/10.3982/ECTA20769) · [Open version](https://koichiroito.com/pdfs/Market_Integration_Gonzales_Ito_Reguant.pdf)
+  
+  *Chile joined two grids, and renewable investment responded. The investment effect is the one thing the fixed-capacity model of section 6 cannot produce, which is the bridge to the next lecture.*
 - **Joskow and Tirole (2005).** “Merchant Transmission Investment.” *The Journal of Industrial Economics* 53(2), 233–264.  
   [DOI](https://doi.org/10.1111/j.0022-1821.2005.00253.x)
   

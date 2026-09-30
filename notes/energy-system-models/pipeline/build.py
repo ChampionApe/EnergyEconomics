@@ -1568,6 +1568,22 @@ def values_heat(d):
         "HeatPriceNoHP": f"{r.loc[0.0, 'avg_elec_price']:.1f}",
         "HeatPriceMaxHP": f"{r['avg_elec_price'].iloc[-1]:.1f}",
     }
+    # The pump's load cost, the metric of Ruhnau et al. (2020) that the §5.3
+    # prose quotes: the electricity price weighted by the pump's own
+    # consumption, the demand-side mirror of a capture price. Beside it, the
+    # base case's average price, and the same hourly prices weighted by the
+    # heat load's shape, which is the electricity a pump with neither a
+    # boiler nor a heat store behind it would have to draw. All three come
+    # from the base case's hours; nothing is re-solved.
+    h = d["hours"]
+    follow = h["heat_demand_mw"] / h["cop"]
+    macros |= {
+        "HeatPriceBase": f"{r.loc[s['hp_base_mw_el'], 'avg_elec_price']:.1f}",
+        "HeatLoadCost":
+            f"{(h['elec_price'] * h['hp_elec_mw']).sum() / h['hp_elec_mw'].sum():.1f}",
+        "HeatLoadCostHeatShape":
+            f"{(h['elec_price'] * follow).sum() / follow.sum():.1f}",
+    }
     if len(r_tax):
         base = s["hp_base_mw_el"]
         macros |= {
