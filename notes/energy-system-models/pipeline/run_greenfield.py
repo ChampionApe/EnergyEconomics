@@ -22,8 +22,8 @@ over, so that its reference column is this section's reference case:
                 reference price, plus "Danish budget": no common price, a
                 territorial CO2 budget on Danish generation alone -- the
                 instrument section 2 called a cap, in an open economy
-    recovery    Result 7.1 in numbers, the LCOE-against-capture table and
-                the scarcity curve, all at the reference case
+    recovery    Result 6 in numbers, zone by zone, the LCOE-against-capture
+                table and the scarcity curve, all at the reference case
     check       the small table against technology-data -> results/costs_check.csv
 
 Solved networks are cached in results/cache/ keyed by experiment, instance
@@ -40,6 +40,7 @@ import json
 import sys
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 NOTE = Path(__file__).resolve().parent.parent
@@ -341,25 +342,64 @@ def realised_duty(n):
     return df
 
 
+def storage_rent(price, w_objective, w_stores, hours, eta_store, eta_dispatch,
+                 marginal_cost) -> float:
+    """What one MW of a store would earn in a year as a price-taker on the
+    solved prices, EUR: the margin of its best charging and discharging
+    plan under the model's own storage constraints (the state of charge
+    moves by the snapshot's length in hours, the energy rating is `hours`
+    per MW, the year is cyclic). This is the store's envelope value. For a
+    store the model built it equals the realised margin per MW; for one it
+    did not build it is the only measure there is, since an unbuilt store
+    never runs and its realised margin is zero by construction."""
+    from scipy.optimize import linprog
+    from scipy.sparse import coo_matrix
+
+    lam = np.asarray(price, dtype=float)
+    w = np.asarray(w_objective, dtype=float)
+    ws = np.asarray(w_stores, dtype=float)
+    S = len(lam)
+    s = np.arange(S)
+    # Variables: charging c_s, discharging d_s, state of charge e_s. Minimise
+    # minus the margin: charging costs the price, discharging earns it less
+    # the marginal cost.
+    objective = np.concatenate([w * lam, w * (marginal_cost - lam), np.zeros(S)])
+    # e_s - e_{s-1} - ws_s (eta_store c_s - d_s / eta_dispatch) = 0, with
+    # e_{-1} = e_{S-1}: the year ends where it began.
+    balance = coo_matrix(
+        (np.concatenate([np.ones(S), -np.ones(S), -ws * eta_store, ws / eta_dispatch]),
+         (np.concatenate([s, s, s, s]),
+          np.concatenate([2 * S + s, 2 * S + (s - 1) % S, s, S + s]))),
+        shape=(S, 3 * S)).tocsr()
+    bounds = [(0.0, 1.0)] * (2 * S) + [(0.0, hours)] * S
+    res = linprog(objective, A_eq=balance, b_eq=np.zeros(S), bounds=bounds,
+                  method="highs")
+    if res.status != 0:
+        raise RuntimeError(f"storage valuation did not solve: {res.message}")
+    return -float(res.fun)
+
+
 def cost_recovery(n):
-    """Result 7.1 (long-run zero profit) in numbers, per Danish candidate.
+    """Result 6 (long-run zero profit) in numbers, per Danish candidate and
+    zone.
 
     What one MW of a technology would earn in the price system of the solved
-    case is the availability-weighted sum of its hourly scarcity rents,
-    sum_h gamma * max(lambda - c, 0), with c the effective marginal cost
-    (fuel plus the carbon price, plus the budget's dual where there is one).
-    An envelope quantity that exists for unbuilt candidates too. Zero profit
-    says it equals the annualised fixed cost for every technology built
-    below its potential cap, exceeds it by the land rent at the cap, and
-    falls short for one the model declined to build. Reported per
-    technology over the two Danish zones, capacity-weighted where built and
-    at the better site where not. Batteries report their realised arbitrage
-    margin per MW, since a battery's envelope value is not a closed form.
+    case: for a generator the availability-weighted sum of its hourly
+    scarcity rents, sum_h gamma * max(lambda - c, 0), with c the effective
+    marginal cost (fuel plus the carbon price, plus the budget's dual where
+    there is one); for a store the margin of its best operation at the same
+    prices (storage_rent). Both are envelope quantities and exist for
+    unbuilt candidates too. Zero profit says the rent equals the annualised
+    fixed cost wherever a technology is built below its potential cap,
+    exceeds it by the land rent at the cap, and falls short where the model
+    declined to build. The condition holds zone by zone, so it is tested
+    zone by zone: a technology can be interior in one zone and at its cap
+    in the other, and an average over the two would mix the regimes.
     """
     w = n.snapshot_weightings.objective
     sigma = float(n.meta.get("co2_price") or 0.0)
     rates = getattr(n, "_emission_rates", pd.Series(dtype=float))
-    rows = {}
+    rows = []
     for g, row in n.generators.iterrows():
         if row.bus not in greenfield.DK_ZONES or not row.p_nom_extendable:
             continue
@@ -370,52 +410,33 @@ def cost_recovery(n):
             gamma = pd.Series(float(row.p_max_pu), index=n.snapshots)
         carbon = sigma * float(rates.get(row.carrier, 0.0))
         margin = (price - row.marginal_cost - carbon).clip(lower=0.0)
-        rent_per_mw = float((gamma * margin * w).sum())
-        entry = rows.setdefault(row.carrier, {
-            "capacity_mw": 0.0, "p_nom_max_mw": 0.0,
-            "_rent_weighted": 0.0, "_rent_best": None,
-            "_fixed_weighted": 0.0, "_fixed_best": None})
-        cap = float(row.p_nom_opt)
-        entry["capacity_mw"] += cap
-        entry["p_nom_max_mw"] += float(min(row.p_nom_max, 1e9))
-        entry["_rent_weighted"] += rent_per_mw * cap
-        entry["_fixed_weighted"] += float(row.capital_cost) * cap
-        if (entry["_rent_best"] is None
-                or rent_per_mw - row.capital_cost
-                > entry["_rent_best"] - entry["_fixed_best"]):
-            entry["_rent_best"], entry["_fixed_best"] = rent_per_mw, float(row.capital_cost)
+        rows.append({
+            "tech": row.carrier, "zone": row.bus,
+            "capacity_mw": float(row.p_nom_opt),
+            "p_nom_max_mw": float(min(row.p_nom_max, 1e9)),
+            "fixed_eur_mw_yr": float(row.capital_cost),
+            "rent_eur_mw_yr": float((gamma * margin * w).sum()),
+        })
     for s, row in n.storage_units.iterrows():
         if row.bus not in greenfield.DK_ZONES or not row.p_nom_extendable:
             continue
-        price = n.buses_t.marginal_price[row.bus]
-        net = n.storage_units_t.p[s]        # positive when discharging
-        margin = float((price * net * w).sum()
-                       - row.marginal_cost * (net.abs() * w).sum())
-        entry = rows.setdefault(row.carrier, {
-            "capacity_mw": 0.0, "p_nom_max_mw": float("inf"),
-            "_rent_weighted": 0.0, "_rent_best": 0.0,
-            "_fixed_weighted": 0.0, "_fixed_best": float(row.capital_cost)})
-        cap = float(row.p_nom_opt)
-        entry["capacity_mw"] += cap
-        entry["_rent_weighted"] += margin
-        entry["_fixed_weighted"] += float(row.capital_cost) * cap
-    out = {}
-    for tech, e in rows.items():
-        built = e["capacity_mw"] > 1.0
-        fixed = (e["_fixed_weighted"] / e["capacity_mw"] if built
-                 else e["_fixed_best"])
-        rent = (e["_rent_weighted"] / e["capacity_mw"] if built
-                else e["_rent_best"])
-        out[tech] = {
-            "capacity_mw": float(e["capacity_mw"]),
-            "p_nom_max_mw": float(e["p_nom_max_mw"]),
-            "built": bool(built),
-            "at_cap": bool(built and e["capacity_mw"] >= 0.999 * e["p_nom_max_mw"]),
-            "fixed_eur_mw_yr": float(fixed),
-            "rent_eur_mw_yr": float(rent),
-            "rent_over_fixed": float(rent) / float(fixed) if fixed else float("nan"),
-        }
-    return pd.DataFrame.from_dict(out, orient="index")
+        rows.append({
+            "tech": row.carrier, "zone": row.bus,
+            "capacity_mw": float(row.p_nom_opt),
+            "p_nom_max_mw": float(min(row.p_nom_max, 1e9)),
+            "fixed_eur_mw_yr": float(row.capital_cost),
+            "rent_eur_mw_yr": storage_rent(
+                n.buses_t.marginal_price[row.bus], w,
+                n.snapshot_weightings.stores, float(row.max_hours),
+                float(row.efficiency_store), float(row.efficiency_dispatch),
+                float(row.marginal_cost)),
+        })
+    df = pd.DataFrame(rows)
+    df["built"] = df["capacity_mw"] > 1.0
+    df["at_cap"] = df["built"] & (df["capacity_mw"] >= 0.999 * df["p_nom_max_mw"])
+    df["rent_over_fixed"] = df["rent_eur_mw_yr"] / df["fixed_eur_mw_yr"]
+    return df[["tech", "zone", "capacity_mw", "p_nom_max_mw", "built", "at_cap",
+               "fixed_eur_mw_yr", "rent_eur_mw_yr", "rent_over_fixed"]]
 
 
 def value_table(n, tau):
@@ -658,7 +679,7 @@ def main():
     sweep.to_csv(RESULTS / "greenfield_tax_sweep.csv", index=False)
     breakdown.to_csv(RESULTS / "greenfield_cost_breakdown.csv", index_label="tech")
     duty.to_csv(RESULTS / "greenfield_realised_duty.csv", index_label="tech")
-    recovery.to_csv(RESULTS / "greenfield_cost_recovery.csv", index_label="tech")
+    recovery.to_csv(RESULTS / "greenfield_cost_recovery.csv", index=False)
     values.to_csv(RESULTS / "greenfield_value_table.csv", index_label="tech")
     scarcity_curve.to_csv(RESULTS / "greenfield_scarcity.csv", index=False)
     scenarios.to_csv(RESULTS / "greenfield_scenarios.csv", index_label="scenario")

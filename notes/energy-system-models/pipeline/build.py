@@ -48,6 +48,18 @@ VERMILLION = "#D55E00"
 BLOCK_FILL = "#aecde3"
 INK = "#333333"
 
+
+def label_color(color):
+    """A series colour for a direct label, darkened when it is too pale to
+    read as text on white (the Okabe-Ito yellow is): text needs more
+    contrast than a line or a bar does. Other colours pass unchanged."""
+    from matplotlib.colors import to_rgb
+    rgb = to_rgb(color)
+    luminance = 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]
+    if luminance <= 0.75:
+        return color
+    return tuple(c * 0.45 / luminance for c in rgb)
+
 plt.rcParams.update(
     {
         "font.size": 9,
@@ -179,12 +191,12 @@ def load_results():
                 if (RESULTS / "greenfield_resolution_check.json").exists() else None
             ),
             "summary": json.loads((RESULTS / "greenfield_summary.json").read_text(encoding="utf-8")),
-            # Result 7.1 in numbers, the LCOE-against-capture-price table and
-            # the scarcity curve: written by run_greenfield.py from the
-            # reference solve.
+            # Result 6 in numbers (one row per candidate and Danish zone),
+            # the LCOE-against-capture-price table and the scarcity curve:
+            # written by run_greenfield.py from the reference solve.
             **{key: (pd.read_csv(RESULTS / f"greenfield_{key}.csv", **kw)
                      if (RESULTS / f"greenfield_{key}.csv").exists() else None)
-               for key, kw in [("cost_recovery", {"index_col": "tech"}),
+               for key, kw in [("cost_recovery", {}),
                                ("value_table", {"index_col": "tech"}),
                                ("scarcity", {})]},
         }
@@ -256,8 +268,10 @@ def _draw_merit_order(ax, generators, mc_col, gen_col, price, load_mw,
     ax.axhline(price, color=INK, linewidth=0.8, linestyle=":")
     ax.text(load_mw / 1000.0, ax.get_ylim()[1], " load $D$",
             ha="left", va="top", fontsize=8, color=INK)
-    ax.text(x + 0.05, price, rf"$\lambda = {price:.0f}$",
-            ha="left", va="center", fontsize=8, color=INK)
+    # Above the dotted line, not on it.
+    ax.annotate(rf"$\lambda = {price:.0f}$", xy=(x + 0.05, price), xytext=(0, 2),
+                textcoords="offset points", ha="left", va="bottom",
+                fontsize=8, color=INK)
     ax.set_xlim(0, x * 1.09)
     ax.grid(axis="y")
     ax.set_ylabel("marginal cost (€/MWh)")
@@ -414,9 +428,11 @@ def fig_dispatch_mac(d):
                 xytext=(0.06 * (m0 - floor), 158),
                 fontsize=8, color=INK,
                 arrowprops=dict(arrowstyle="->", color="#999999", linewidth=0.8))
+    # In the empty corner under both curves, clear of the dashed one.
     ax.annotate("same object, two derivations:\none assumes the shape,\n"
                 "the other explains it",
-                xy=(0.60 * (m0 - floor), 205), fontsize=8, color="#777777")
+                xy=(0.99 * (m0 - floor), 6), ha="right", va="bottom",
+                fontsize=8, color="#777777")
 
     ax.set_xlim(0, (m0 - floor) * 1.02)
     ax.grid(axis="y")
@@ -555,24 +571,31 @@ def fig_intermittency_profiles(d):
             ax.plot(window.index, window[f"{name}_pu"], color=color,
                     linewidth=1.3, label=VRE_LABELS[name])
         ax.set_title(title, loc="left", fontsize=9, color=INK)
-        ax.set_ylim(0, 1.02)
+        # Headroom above full output, so the legend sits over empty axes
+        # rather than over a windy hour; the ticks stop at one.
+        ax.set_ylim(0, 1.22)
+        ax.set_yticks([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
         ax.grid(axis="y")
         ax.margins(x=0)
         ax.tick_params(axis="x", labelsize=7)
-    axes[0].legend(frameon=False, fontsize=8, ncol=4, loc="upper right")
+    axes[0].legend(frameon=False, fontsize=8, ncol=4, loc="upper center")
 
     ax = axes[2]
     pct = (pd.RangeIndex(len(p)) + 0.5) / len(p) * 100.0
     for name, color in VRE_COLORS.items():
         sorted_pu = p[f"{name}_pu"].sort_values(ascending=False).to_numpy()
         ax.plot(pct, sorted_pu, color=color, linewidth=1.6)
-    for name, x in [("wind_offshore", 30), ("wind_onshore", 40), ("solar", 18)]:
+    for name, x in [("wind_offshore", 30), ("wind_onshore", 40)]:
         y = p[f"{name}_pu"].sort_values(ascending=False).to_numpy()[
             int(x / 100 * len(p))
         ]
         ax.annotate(f"{VRE_LABELS[name]}  (CF {cf[name]:.2f})", xy=(x, y),
                     xytext=(6, 6), textcoords="offset points",
                     fontsize=8, color=VRE_COLORS[name])
+    # Solar's label sits under its own curve: above it, the onshore curve
+    # runs through the text.
+    ax.annotate(f"{VRE_LABELS['solar']}  (CF {cf['solar']:.2f})", xy=(10, 0.10),
+                fontsize=8, color=VRE_COLORS["solar"])
     ax.set_title("(c) duration curves, whole year", loc="left", fontsize=9, color=INK)
     ax.set_xlim(0, 100)
     ax.set_ylim(0, 1.02)
@@ -788,10 +811,13 @@ def fig_intermittency_value(d):
         axes[1].plot(share, g["value_factor"], color=colors[family],
                      linewidth=1.8, marker="o", markersize=3.5, label=family)
 
-    axes[0].annotate("wind capture price", xy=(43, 22), fontsize=8, color=BLUE)
+    # Direct labels, each in empty space beside its own curve: under the
+    # steep stretch for the capture prices, above the dashed lines for the
+    # base prices.
+    axes[0].annotate("wind capture price", xy=(40, 12), fontsize=8, color=BLUE)
     axes[0].annotate("base price,\nas wind grows", xy=(57, 38), fontsize=8,
                      color=BLUE, alpha=0.8)
-    axes[0].annotate("solar capture price", xy=(11, 25), fontsize=8,
+    axes[0].annotate("solar capture price", xy=(6, 5), fontsize=8,
                      color=colors["solar"])
     axes[0].annotate("base price,\nas solar grows", xy=(24.5, 39.5), fontsize=8,
                      color=colors["solar"], alpha=0.8)
@@ -802,8 +828,8 @@ def fig_intermittency_value(d):
     axes[0].grid(axis="y")
 
     axes[1].axhline(1.0, color="#999999", linewidth=0.8, linestyle="--")
-    axes[1].annotate("wind", xy=(45, 0.72), fontsize=8, color=BLUE)
-    axes[1].annotate("solar", xy=(16, 0.55), fontsize=8, color=colors["solar"])
+    axes[1].annotate("wind", xy=(47, 0.79), fontsize=8, color=BLUE)
+    axes[1].annotate("solar", xy=(20.5, 0.60), fontsize=8, color=colors["solar"])
     axes[1].set_title("(b) value factor", loc="left", fontsize=9, color=INK)
     axes[1].set_ylabel("capture price / base price")
     axes[1].set_xlabel("energy share of the technology (%)")
@@ -1239,7 +1265,9 @@ def fig_storage_week(d):
                  linewidth=1.2, label="price, no storage")
     axes[0].plot(window, prices.loc[window, "with_storage"], color=BLUE,
                  linewidth=1.5, label="price, with storage")
-    axes[0].legend(frameon=False, fontsize=8, loc="upper right", ncol=2)
+    # The week is picked from the data, so is the empty corner: let the
+    # legend find the place where it covers the least of the price path.
+    axes[0].legend(frameon=False, fontsize=8, loc="best", ncol=2)
     axes[0].set_ylabel("price (€/MWh)")
     axes[0].grid(axis="y")
     axes[0].set_title("(a) the price path", loc="left", fontsize=9, color=INK)
@@ -1610,18 +1638,19 @@ def values_heat(d):
 # --------------------------------------------------------------------------
 
 def fig_network_prices(d):
-    """Figure 6.1: zonal price duration curves."""
+    """Figure (fig:transmission:prices): zonal price duration curves. The
+    five curves run together through the middle of the year, where direct
+    labels would sit on each other's lines, so they get a legend in the
+    empty corner below them."""
     prices = d["prices"]
     pct = (pd.RangeIndex(len(prices)) + 0.5) / len(prices) * 100.0
 
     fig, ax = plt.subplots(figsize=(6.1, 3.7))
     for zone in ["DE", "DK1", "DK2", "NO2", "SE3"]:
         sorted_p = prices[zone].sort_values(ascending=False).to_numpy()
-        ax.plot(pct, sorted_p, color=ZONE_COLORS[zone], linewidth=1.6)
-        x = {"DE": 12, "DK1": 30, "DK2": 45, "NO2": 68, "SE3": 84}[zone]
-        ax.annotate(zone, xy=(x, sorted_p[int(x / 100 * len(prices))]),
-                    xytext=(0, 6), textcoords="offset points",
-                    fontsize=8, color=ZONE_COLORS[zone])
+        ax.plot(pct, sorted_p, color=ZONE_COLORS[zone], linewidth=1.6,
+                label=zone)
+    ax.legend(frameon=False, fontsize=8, ncol=5, loc="lower left")
     ax.set_xlim(0, 100)
     ax.grid(axis="y")
     ax.set_xlabel("share of hours (%)")
@@ -1660,8 +1689,8 @@ def fig_network_smoothing(d):
     fig, axes = plt.subplots(1, 2, figsize=(6.1, 3.2))
     axes[0].scatter(wind["dk1"], wind["dk2"], s=1.2, alpha=0.12, color=BLUE,
                     rasterized=True)
-    axes[0].set_xlabel("DK1 onshore wind (p.u.)")
-    axes[0].set_ylabel("DK2 onshore wind (p.u.)")
+    axes[0].set_xlabel("DK1 onshore wind (share of maximum output)")
+    axes[0].set_ylabel("DK2 onshore wind (share of maximum output)")
     axes[0].set_title(f"(a) hourly, corr. {corr:.2f}", loc="left",
                       fontsize=9, color=INK)
     axes[0].grid(axis="y")
@@ -1719,12 +1748,12 @@ AREA_FILL = {"Continental Europe": "#dfe9f3", "Nordic": "#f3ebdc"}
 # DC cables and the two AC borders that face Denmark.
 TOPOLOGY_LABEL_OFFSETS = {
     "DK1–NO2 DC": (-330e3, 60e3),
-    "DK1–SE3 DC": (300e3, 90e3),
+    "DK1–SE3 DC": (455e3, -100e3),
     "DK1–DK2 DC": (-300e3, -120e3),
     "DE–NO2 DC": (-380e3, -280e3),
     "DE–DK2 DC": (400e3, -140e3),
     "DE–SE4 DC": (430e3, 10e3),
-    "SE3–SE4 DC": (330e3, 20e3),
+    "SE3–SE4 DC": (360e3, -40e3),
     "DE–DK1 AC": (-240e3, -200e3),
     "DK2–SE4 AC": (300e3, -30e3),
 }
@@ -1863,10 +1892,12 @@ def distribution_table(d, after, before):
 
 
 def fig_network_distribution(d):
-    """Figure 6.5: who wins and who loses from the Skagerrak corridor, by
-    country: consumers, producers and the countries' halves of the rent,
-    for the corridor as built against none, and for a doubling."""
-    fig, axes = plt.subplots(1, 2, figsize=(6.1, 3.3))
+    """Figure (fig:transmission:distribution): who wins and who loses from
+    the Skagerrak corridor, by country: consumers, producers and the
+    countries' halves of the rent, for the corridor as built against none,
+    and for a doubling. The bars fill both panels top to bottom, so the
+    legend sits below them."""
+    fig, axes = plt.subplots(1, 2, figsize=(6.1, 3.6))
     titles = {"Built": "(a) the corridor as built, against none",
               "Double": "(b) a second corridor of the same size"}
     colors = {"consumers": BLUE, "producers": VERMILLION, "rent": "#999999"}
@@ -1891,7 +1922,9 @@ def fig_network_distribution(d):
         ax.set_title(titles[label], loc="left", fontsize=9, color=INK)
         ax.grid(axis="y")
     axes[0].set_ylabel("M€ per year")
-    axes[0].legend(frameon=False, fontsize=7, loc="lower left")
+    handles, names = axes[0].get_legend_handles_labels()
+    fig.legend(handles, names, frameon=False, fontsize=8, ncol=4,
+               loc="outside lower center")
     fig.savefig(FIGURES / "network_distribution.pdf")
     plt.close(fig)
 
@@ -2060,7 +2093,7 @@ def fig_greenfield_screening(d):
         ax.plot(hours, cost, color=TECH_COLORS[tech], linewidth=1.6)
         ax.annotate(TECH_LABELS[tech], xy=(hours.iloc[-1], cost.iloc[-1]),
                     xytext=(4, 0), textcoords="offset points", va="center",
-                    fontsize=8, color=TECH_COLORS[tech],
+                    fontsize=8, color=label_color(TECH_COLORS[tech]),
                     annotation_clip=False)
     # Where the LP actually put each technology. The screening curve names the
     # cheapest technology for a *given* duty; it cannot say which duty a
@@ -2081,7 +2114,7 @@ def fig_greenfield_screening(d):
             ax.plot([flh, flh], [0, cost], color=TECH_COLORS[tech],
                     linewidth=0.7, linestyle=":", alpha=0.7, zorder=1)
         ax.annotate("markers: the duty each technology actually serves\n"
-                    "in the reference system of figure 7.2",
+                    "in the reference system",
                     xy=(0.02, 0.97), xycoords="axes fraction", ha="left",
                     va="top", fontsize=7.5, color=INK)
 
@@ -2115,10 +2148,11 @@ def _stacked_mix(ax, frame, order=None):
 
 
 def fig_greenfield_mix(d):
-    """Figure 7.2: (a) the optimal Danish mix as the common carbon price
-    rises, with Danish emissions above each bar; (b) Danish and system
-    emissions against the price -- the marginal abatement curve read from
-    the tax side, with the fuel-switching price marked."""
+    """Figure (fig:investment:mix): (a) the optimal Danish mix as the common
+    carbon price rises, with Danish emissions in Mt above each bar (the unit
+    is in the caption: with it, neighbouring labels collide); (b) Danish and
+    system emissions against the price -- the marginal abatement curve read
+    from the tax side, with the fuel-switching price marked."""
     sweep = d["sweep"].copy().sort_values("carbon_price")
     s = d["summary"]
     sweep.index = [f"{t:.0f}" for t in sweep["carbon_price"]]
@@ -2126,10 +2160,10 @@ def fig_greenfield_mix(d):
                              gridspec_kw={"width_ratios": [1.5, 1.0]})
     top = _stacked_mix(axes[0], sweep)
     for i, (_, row) in enumerate(sweep.iterrows()):
-        axes[0].annotate(f"{row['emissions_t'] / 1e6:.2f} Mt", xy=(i, top.iloc[i]),
+        axes[0].annotate(f"{row['emissions_t'] / 1e6:.2f}", xy=(i, top.iloc[i]),
                          xytext=(0, 4), textcoords="offset points", ha="center",
                          fontsize=7, color=INK)
-    axes[0].legend(frameon=False, fontsize=7, ncol=3, loc="upper left")
+    axes[0].legend(frameon=False, fontsize=7, ncol=2, loc="upper left")
     axes[0].set_ylim(0, top.max() * 1.6)
     axes[0].set_xlabel("common carbon price (€/t)")
     axes[0].set_title("(a) what Denmark builds", loc="left", fontsize=9, color=INK)
@@ -2196,32 +2230,79 @@ RECOVERY_LABELS = {**TECH_LABELS, "battery_2h": "battery 2h",
                    "battery_4h": "battery 4h", "battery_8h": "battery 8h"}
 
 
+def recovery_regime(row) -> str:
+    """The case of Result 6 a candidate is in, in one zone."""
+    if not row["built"]:
+        return "not built"
+    return "at cap" if row["at_cap"] else "interior"
+
+
+def recovery_tag(r, tech) -> str:
+    """The value table's regime column for a built technology: interior, at
+    its cap, or at its cap in the zones named when the zones differ."""
+    built = r[(r["tech"] == tech) & r["built"]]
+    if built.empty:
+        return ""
+    capped = built.loc[built["at_cap"], "zone"].tolist()
+    if not capped:
+        return "interior"
+    if len(capped) == len(built):
+        return "at its cap"
+    return "at its cap in " + " and ".join(capped)
+
+
+# Face colour, edge colour and legend label of each case of Result 6. Not
+# built is the recessive case: grey and hollow, so it does not rest on
+# colour alone.
+RECOVERY_STYLE = {
+    "interior": (BLUE, "white", "built below its cap"),
+    "at cap": (VERMILLION, "white", "built to its cap"),
+    "not built": ("none", "#8c8c8c", "not built"),
+}
+RECOVERY_ZONE_MARKER = {"DK1": "o", "DK2": "s"}
+
+
 def fig_greenfield_recovery(d):
-    """Figure: long-run zero profit in numbers. Per Danish candidate, what a
-    MW earns in scarcity rents against what it costs to hold for a year.
-    Built and uncapped: equal. At the land cap: rents above cost, the gap
-    the land rent. Not built: rents below cost."""
-    r = d["cost_recovery"]
-    r = r.reindex([t for t in RECOVERY_ORDER if t in r.index])
-    x = range(len(r))
-    width = 0.38
+    """Figure: long-run zero profit in numbers. Per Danish candidate and
+    zone, what a MW earns in the solved prices as a share of what it costs
+    to hold for a year. Built below its cap: on the line. At the land cap:
+    above it, by the land rent. Not built: below it. The condition holds
+    zone by zone, so the zones are drawn apart."""
+    from matplotlib.lines import Line2D
+
+    r = d["cost_recovery"].copy()
+    r["regime"] = r.apply(recovery_regime, axis=1)
+    techs = [t for t in RECOVERY_ORDER if t in set(r["tech"])]
+    offset = {"DK1": -0.14, "DK2": 0.14}
     fig, ax = plt.subplots(figsize=(6.1, 3.6))
-    ax.bar([i - width / 2 for i in x], r["fixed_eur_mw_yr"] / 1e3, width,
-           color=BLOCK_FILL, edgecolor="white", label="annualised fixed cost")
-    ax.bar([i + width / 2 for i in x], r["rent_eur_mw_yr"] / 1e3, width,
-           color="#D55E00", alpha=0.8, edgecolor="white",
-           label="scarcity rents a MW earns")
-    for i, (tech, row) in enumerate(r.iterrows()):
-        tag = ("at cap" if row["at_cap"] else "built" if row["built"]
-               else "not built")
-        ax.annotate(tag, xy=(i, max(row["fixed_eur_mw_yr"], row["rent_eur_mw_yr"]) / 1e3),
-                    xytext=(0, 4), textcoords="offset points", ha="center",
-                    fontsize=7, color=INK)
-    ax.set_xticks(list(x), [RECOVERY_LABELS.get(t, t) for t in r.index],
+    ax.axhline(100, color=INK, linewidth=0.9, zorder=1)
+    ax.annotate("zero profit", xy=(len(techs) - 0.45, 100), xytext=(0, 3),
+                textcoords="offset points", ha="right", va="bottom",
+                fontsize=8, color=INK)
+    for _, row in r.iterrows():
+        face, edge, _ = RECOVERY_STYLE[row["regime"]]
+        ax.plot(techs.index(row["tech"]) + offset[row["zone"]],
+                100 * row["rent_over_fixed"], linestyle="none",
+                marker=RECOVERY_ZONE_MARKER[row["zone"]], markersize=6.5,
+                markerfacecolor=face, markeredgecolor=edge,
+                markeredgewidth=1.2 if face == "none" else 0.8, zorder=3)
+    ax.set_xticks(range(len(techs)), [RECOVERY_LABELS.get(t, t) for t in techs],
                   fontsize=8, rotation=20, ha="right")
-    ax.legend(frameon=False, fontsize=8, loc="upper left")
+    ax.set_xlim(-0.6, len(techs) - 0.4)
+    ax.set_ylim(0, 1.1 * max(100.0, 100 * r["rent_over_fixed"].max()))
+    ax.set_ylabel("earnings of a MW, % of its fixed cost")
     ax.grid(axis="y")
-    ax.set_ylabel("k€ per MW per year")
+    handles = [Line2D([], [], linestyle="none", marker="o", markersize=6.5,
+                      markerfacecolor=face,
+                      markeredgecolor=edge if face == "none" else face,
+                      markeredgewidth=1.2 if face == "none" else 0.8,
+                      label=label)
+               for face, edge, label in RECOVERY_STYLE.values()]
+    handles += [Line2D([], [], linestyle="none", marker=marker, markersize=6.5,
+                       markerfacecolor="white", markeredgecolor=INK, label=zone)
+                for zone, marker in RECOVERY_ZONE_MARKER.items()]
+    ax.legend(handles=handles, frameon=False, fontsize=8, loc="lower left",
+              ncol=2)
     fig.savefig(FIGURES / "greenfield_recovery.pdf")
     plt.close(fig)
 
@@ -2283,9 +2364,7 @@ def table_greenfield_values(d):
         r"\midrule",
     ]
     for tech, row in v.iterrows():
-        tag = ""
-        if tech in r.index:
-            tag = "at its cap" if bool(r.loc[tech, "at_cap"]) else "interior"
+        tag = recovery_tag(r, tech)
         lines.append(
             rf"{RECOVERY_LABELS.get(tech, tech)} & {row['capacity_mw'] / 1000:.1f}"
             rf" & {row['full_load_hours']:,.0f} & {row['lcoe_eur_mwh']:.1f}"
@@ -2504,11 +2583,28 @@ def values_greenfield(d):
                 gen_b = float(dkb[gen_cols].fillna(0.0).sum()) if gen_cols and all(c in scen.columns for c in gen_cols) else None
                 if gen_b is not None:
                     macros["InvDKBudgetNetImportPct"] = f"{100 * (1 - gen_b / dkb['dk_load_mwh']):.0f}"
-    # Result 7.1 in numbers: rents against fixed cost, per candidate.
+    # Result 6 in numbers: rents against fixed cost, per candidate and zone.
     r = d.get("cost_recovery")
     if r is not None:
-        def ratio(tech):
-            return f"{100 * r.loc[tech, 'rent_over_fixed']:.0f}" if tech in r.index else "--"
+        def ratio(tech, zone=None):
+            """Rent over fixed cost, in per cent: in `zone` if one is named;
+            otherwise where the technology is built below its cap, else where
+            it is at its cap (capacity-weighted), else at the better site."""
+            rows = r[r["tech"] == tech]
+            if zone is not None:
+                rows = rows[rows["zone"] == zone]
+            elif (rows["built"] & ~rows["at_cap"]).any():
+                rows = rows[rows["built"] & ~rows["at_cap"]]
+            elif rows["built"].any():
+                rows = rows[rows["built"]]
+            else:
+                rows = rows.nlargest(1, "rent_over_fixed")
+            if rows.empty:
+                return "--"
+            weights = rows["capacity_mw"]
+            if weights.sum() <= 0:          # unbuilt: one row, unweighted
+                weights = pd.Series(1.0, index=rows.index)
+            return f"{100 * (rows['rent_over_fixed'] * weights).sum() / weights.sum():.0f}"
         macros |= {
             "InvRecoverySolarPct": ratio("solar_pv"),
             "InvRecoveryOnshorePct": ratio("wind_onshore"),
@@ -2518,11 +2614,22 @@ def values_greenfield(d):
             "InvRecoveryCCGTPct": ratio("ccgt"),
             "InvRecoveryNuclearPct": ratio("nuclear"),
             "InvRecoveryBatteryEightPct": ratio("battery_8h"),
+            "InvRecoveryBatteryFourPct": ratio("battery_4h"),
+            "InvRecoveryBatteryTwoPct": ratio("battery_2h"),
         }
+        # The land rent, where a technology sits on its cap: zone by zone,
+        # and capacity-weighted over the zones where it does.
         for tech, key in [("wind_onshore", "Onshore"), ("solar_pv", "Solar")]:
-            if tech in r.index and bool(r.loc[tech, "at_cap"]):
-                macros[f"Inv{key}LandRent"] = (
-                    f"{(r.loc[tech, 'rent_eur_mw_yr'] - r.loc[tech, 'fixed_eur_mw_yr']) / 1e3:.0f}")
+            capped = r[(r["tech"] == tech) & r["at_cap"]]
+            for zone, zkey in [("DK1", "DKOne"), ("DK2", "DKTwo")]:
+                macros[f"InvRecovery{key}{zkey}Pct"] = ratio(tech, zone)
+                at = capped[capped["zone"] == zone]
+                if len(at):
+                    rent = float((at["rent_eur_mw_yr"] - at["fixed_eur_mw_yr"]).iloc[0])
+                    macros[f"Inv{key}LandRent{zkey}"] = f"{rent / 1e3:.0f}"
+            if len(capped):
+                excess = (capped["rent_eur_mw_yr"] - capped["fixed_eur_mw_yr"]) * capped["capacity_mw"]
+                macros[f"Inv{key}LandRent"] = f"{excess.sum() / capped['capacity_mw'].sum() / 1e3:.0f}"
     v = d.get("value_table")
     if v is not None:
         def vt(tech, col, fmt):
@@ -2577,17 +2684,22 @@ def fig_weather_mix(d):
 
 
 def fig_weather_cost(d):
-    """Figure 9.2: the Danish bill and the CO2 shadow price by weather year.
+    """Figure (fig:uncertainty:cost): the Danish bill and Danish emissions by
+    weather year.
 
     The bill, not the solver's objective: eleven of the twelve zones are
     fixed in this section, and dividing a Danish movement by a European
-    total flattens the panel into a straight line."""
+    total flattens the panel into a straight line. Years are written with
+    two digits, as in the tax-versus-cap figure: ten four-digit labels do
+    not fit under a half-width panel."""
     mix = d["mix"]
     x = range(len(mix))
+    years = [str(y)[2:] for y in mix.index]
     fig, axes = plt.subplots(1, 2, figsize=(6.1, 3.0))
     axes[0].bar(x, mix["dk_system_cost"] / 1e9, color=BLOCK_FILL,
                 edgecolor="white", width=0.6)
-    axes[0].set_xticks(list(x), mix.index, fontsize=8)
+    axes[0].set_xticks(list(x), years, fontsize=8)
+    axes[0].set_xlabel("weather year")
     axes[0].grid(axis="y")
     axes[0].set_ylabel("Danish system cost (bn € / yr)")
     axes[0].set_title("(a) the Danish bill", loc="left", fontsize=9, color=INK)
@@ -2596,7 +2708,8 @@ def fig_weather_cost(d):
 
     axes[1].plot(x, mix["emissions_t"] / 1e6, color=VERMILLION, linewidth=1.6,
                  marker="o", markersize=5)
-    axes[1].set_xticks(list(x), mix.index, fontsize=8)
+    axes[1].set_xticks(list(x), years, fontsize=8)
+    axes[1].set_xlabel("weather year")
     axes[1].grid(axis="y")
     axes[1].set_ylim(bottom=0)
     axes[1].set_ylabel("Danish emissions (Mt)")
@@ -2607,9 +2720,13 @@ def fig_weather_cost(d):
 
 
 def fig_weather_pdc(d):
-    """Figure 9.3: DK1 price duration curves across weather years."""
+    """Figure (fig:uncertainty:pdc): DK1 price duration curves across weather
+    years, one shade per year from light (first) to dark (last), drawn from
+    a ramp so that every year in the results is plotted, however many."""
     duration = d["price_duration"]
-    shades = ["#c6dbef", "#9ecae1", "#6baed6", "#4292c6", "#2171b5", "#08519c"]
+    ramp = plt.get_cmap("Blues")
+    n = len(duration.columns)
+    shades = [ramp(0.35 + 0.6 * i / max(n - 1, 1)) for i in range(n)]
     fig, ax = plt.subplots(figsize=(6.1, 3.6))
     for color, year in zip(shades, duration.columns):
         ax.plot(duration.index, duration[year], color=color, linewidth=1.4,
@@ -2622,7 +2739,7 @@ def fig_weather_pdc(d):
         f"scarcity peaks reach {duration.max().max():,.0f} €/MWh (cut off)",
         xy=(2, 392), fontsize=8, color=INK, va="top",
     )
-    ax.legend(frameon=False, fontsize=8, ncol=3, title="weather year",
+    ax.legend(frameon=False, fontsize=8, ncol=5, title="weather year",
               title_fontsize=8, loc="center right")
     ax.set_xlim(0, 100)
     ax.grid(axis="y")
@@ -2687,23 +2804,29 @@ def fig_taxcap(d):
     years = list(t.index)
     fig, axes = plt.subplots(1, 2, figsize=(6.1, 3.2), sharex=True)
     x = range(len(years))
+    # Each line's label sits in a strip of empty axis to the right of the
+    # last bar, so that no bar, however tall, can run into it.
+    strip = len(years) - 0.45
     axes[0].bar(x, t["cap_co2_price_eur_t"], color=BLOCK_FILL, edgecolor="white")
     axes[0].axhline(s["tax_eur_t"], color="#D55E00", linewidth=1.2, linestyle="--")
-    axes[0].annotate("the tax", xy=(0, s["tax_eur_t"]), xytext=(2, 4),
-                     textcoords="offset points", fontsize=7.5, color="#D55E00")
+    axes[0].annotate("the tax", xy=(strip, s["tax_eur_t"]), xytext=(0, 3),
+                     textcoords="offset points", fontsize=7.5, color="#D55E00",
+                     ha="left", va="bottom")
     axes[0].set_ylabel("carbon price under the cap (€/t)")
     axes[0].set_title("(a) cap: emissions fixed, price moves", loc="left",
                       fontsize=9, color=INK)
     axes[1].bar(x, t["tax_emissions_t"] / 1e6, color="#D55E00", alpha=0.8,
                 edgecolor="white")
     axes[1].axhline(s["budget_t"] / 1e6, color=BLUE, linewidth=1.2, linestyle="--")
-    axes[1].annotate("the cap", xy=(0, s["budget_t"] / 1e6), xytext=(2, 4),
-                     textcoords="offset points", fontsize=7.5, color=BLUE)
+    axes[1].annotate("the cap", xy=(strip, s["budget_t"] / 1e6), xytext=(0, 3),
+                     textcoords="offset points", fontsize=7.5, color=BLUE,
+                     ha="left", va="bottom")
     axes[1].set_ylabel("emissions under the tax (Mt)")
     axes[1].set_title("(b) tax: price fixed, emissions move", loc="left",
                       fontsize=9, color=INK)
     for ax in axes:
         ax.set_xticks(list(x), [str(y)[2:] for y in years], fontsize=8)
+        ax.set_xlim(-0.6, len(years) + 1.3)
         ax.grid(axis="y")
         ax.set_xlabel("weather year")
     fig.tight_layout()
@@ -2791,7 +2914,9 @@ def fig_costs_uncertainty(d, weather=None):
     ax.grid(axis="x")
     ax.plot([], [], color=BLUE, lw=3, label="across weather years")
     ax.plot([], [], color=VERMILLION, lw=3, label="across cost scenarios")
-    ax.legend(frameon=False, fontsize=7.5, loc="lower right")
+    # Below the axis label: inside the panel the ranges can reach any corner.
+    ax.legend(frameon=False, fontsize=7.5, ncol=2, loc="upper center",
+              bbox_to_anchor=(0.5, -0.15))
 
     fig.tight_layout()
     fig.savefig(FIGURES / "costs_uncertainty.pdf")
@@ -2945,11 +3070,15 @@ def fig_expansion_ladder(d):
         axes[0].plot(list(x), sigma, **style)
         axes[1].plot(list(x), cost, **style)
 
-    for ax, ylabel in zip(axes, ["carbon price σ (€/t)",
-                                 "system cost (bn€ / year)"]):
+    # Panel titles as in every other two-panel figure: the caption reads
+    # the panels as (a) and (b).
+    for ax, ylabel, title in zip(axes,
+                                 ["carbon price σ (€/t)", "system cost (bn€ / year)"],
+                                 ["(a) the carbon price", "(b) the annual system cost"]):
         ax.set_xticks(list(x), labels)
         ax.set_xlabel("CO$_2$ budget (share of unconstrained)")
         ax.set_ylabel(ylabel)
+        ax.set_title(title, loc="left", fontsize=9, color=INK)
         ax.grid(axis="y")
     axes[0].legend(frameon=False, fontsize=7.5, loc="upper left")
     fig.savefig(FIGURES / "expansion_ladder.pdf")

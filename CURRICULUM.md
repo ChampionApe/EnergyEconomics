@@ -156,8 +156,8 @@ summaries of them, and they assume you have read the note sections they build on
   [Link](https://github.com/ChampionApe/EnergyEconomics/blob/main/notes/energy-system-models.pdf)
   
   *From dispatch to investment: annualised capital, screening curves, the greenfield problem, long-run zero profit, and what a rising carbon price builds.*
-- **Brown, Neumann and Riepin (2025).** “Price Formation Without Fuel Costs: The Interaction of Demand Elasticity with Storage Bidding.” *Energy Economics* 146, 108483.  
-  [DOI](https://doi.org/10.1016/j.eneco.2025.108483)
+- **Brown, Neumann and Riepin (2025).** “Price Formation Without Fuel Costs: The Interaction of Demand Elasticity with Storage Bidding.” *Energy Economics* 147, 108483.  
+  [DOI](https://doi.org/10.1016/j.eneco.2025.108483) · [Open version](https://doi.org/10.14279/depositonce-25473)
   
   *The workshop paper. What sets the price when nobody has a fuel cost, and how little demand elasticity it takes to change the answer. The mechanism behind the demand blocks in section 7.*
 
@@ -213,7 +213,7 @@ For revision.
 - **Berg (2026).** “Energy System Models.”
 - **Berg (2026).** “Generation Technologies.”
 - **Borenstein (2012).** “The Private and Public Economics of Renewable Electricity Generation.” *Journal of Economic Perspectives* 26(1), 67–92.
-- **Brown, Neumann and Riepin (2025).** “Price Formation Without Fuel Costs: The Interaction of Demand Elasticity with Storage Bidding.” *Energy Economics* 146, 108483.
+- **Brown, Neumann and Riepin (2025).** “Price Formation Without Fuel Costs: The Interaction of Demand Elasticity with Storage Bidding.” *Energy Economics* 147, 108483.
 - **Bushnell and Smith (2025).** “Modeling Uncertainty in Climate Policy: An Application to the US Inflation Reduction Act.” *Environmental and Energy Policy and the Economy* 6, 4–41.
 - **Butters, Dorsey and Gowrisankaran (2025).** “Soaking up the Sun: Battery Investment, Renewable Energy, and Market Equilibrium.” *Econometrica* 93(3), 891–927.
 - **Chyong, Pollitt and Reiner (2024).** “Modelling Flexibility Requirements in Deep Decarbonisation Scenarios: The Role of Conventional Flexibility and Sector Coupling Options in the European 2050 Energy System.” *Energy Strategy Reviews* 52, 101322.
