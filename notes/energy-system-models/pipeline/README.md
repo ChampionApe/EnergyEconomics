@@ -43,7 +43,7 @@ build.
   the network calibrated to 2024 (Norwegian inflow scaled to SSB's hydro
   production by a short secant search on the solved output; internal
   Nordic corridors derated to TYNDP's reference NTCs), plus a four-solve
-  check of the calibration for Appendix C. `--raw-hydro`, `--raw-ntc`,
+  check of the calibration for Appendix B. `--raw-hydro`, `--raw-ntc`,
   `--hydro-factor F` and `--skip-calibration-check` switch the pieces.
   The note's figures use `--hours 1095` (chronological segments, like
   every other network section). Not cached: about fifteen minutes on

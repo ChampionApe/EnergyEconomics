@@ -44,7 +44,8 @@ sys.path.insert(0, str(NOTE / "pipeline"))
 
 from model import expansion, greenfield, network
 from run_dispatch import PROCESSED
-from run_greenfield import REFERENCE_WEATHER_YEAR, cache_name, year_weather
+from run_greenfield import (REFERENCE_WEATHER_YEAR, cache_name,
+                            fingerprint_bytes, year_weather)
 
 RESULTS = NOTE / "results"
 CACHE = RESULTS / "cache"
@@ -99,7 +100,8 @@ def load_shared():
 
 def input_fingerprint(aggregation: str = "segments", weather=None) -> str:
     """A short hash of everything a cached solve depends on — the same
-    discipline as run_greenfield.py, extended with what section 8 adds."""
+    discipline as run_greenfield.py, extended with what section 8 adds,
+    and the same fingerprint_bytes(), so line endings do not count."""
     h = hashlib.sha256()
     if weather is not None:
         h.update(pd.util.hash_pandas_object(
@@ -117,7 +119,7 @@ def input_fingerprint(aggregation: str = "segments", weather=None) -> str:
                  PROCESSED / "h2_assumptions.csv",
                  PROCESSED / "h2_imports.csv",
                  NETWORK_NC]:
-        h.update(path.read_bytes() if path.exists() else b"<missing>")
+        h.update(fingerprint_bytes(path))
     # The model's own source. Changing how a case is BUILT must invalidate
     # the cases already solved, or an edit silently returns the previous
     # answer -- which is exactly what happened on 2026-09-01, when section 7
@@ -126,7 +128,7 @@ def input_fingerprint(aggregation: str = "segments", weather=None) -> str:
     # Only the modules this section actually builds from are hashed, so an
     # edit to an unrelated model does not throw away hours of solves.
     for module in ["expansion.py", "greenfield.py", "network.py"]:
-        h.update((NOTE / "model" / module).read_bytes())
+        h.update(fingerprint_bytes(NOTE / "model" / module))
     h.update(repr([
         greenfield.DISCOUNT_RATE, greenfield.GAS_PRICE,
         greenfield.GAS_CO2_T_PER_MWH_TH, greenfield.BATTERY_MENU_HOURS,

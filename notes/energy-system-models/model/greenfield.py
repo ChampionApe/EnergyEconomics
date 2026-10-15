@@ -8,23 +8,30 @@ and DK2 every capacity is a *choice variable*. PyPSA expresses this as
     annuity(r, n) = r / (1 - (1 + r)^-n)          (eq:investment:annuity)
 
 so the objective becomes total annual system cost, capital plus operations,
-and the LP trades the two off. Appendix B derives the annuity; the
-investment numbers come from PyPSA's technology-data at a pinned tag
-(data/prepare.py), the fuel prices from the note's small table. The
-candidates' availability profiles are the network's own 2024 profiles for
-the Danish zones, so candidate weather is consistent with the neighbours'.
+and the LP trades the two off. Section 7.1 derives the annuity. The
+investment numbers come from PyPSA's technology-data at a pinned tag and the
+fuel prices from the forward fuel table, both written by data/prepare.py
+for FORWARD_HORIZON (below). Each wind and solar candidate inherits the
+availability profile of the same technology already standing in its zone,
+so candidate weather is always the neighbours' weather: the network's own
+2024 profiles, or the year from the zonal weather archive that build() is
+given.
 
-A CO2 budget on Danish generation enters as one extra constraint whose dual
-is the carbon price that would decentralise the plan — section 2's cap, now
-setting the capacity mix rather than reshuffling a fixed one.
+Carbon enters as a price: build(ets_price=...) charges every emitter in
+every zone the same EUR/t. ETS_PRICE is the reference level, and section 7
+sweeps it. The other instrument is a CO2 budget on Danish generation, one
+extra constraint whose dual is the carbon price that would decentralise the
+plan: section 2's cap, now setting the capacity mix rather than reshuffling
+a fixed one. Section 7 uses it for one scenario, with no price on anyone.
 
 The neighbours keep the fleets they have and may add to them from the same
-candidate menu, capped at their published potentials, under no carbon
-constraint of their own: the question the model answers is what Denmark
-should build, given a neighbourhood that is itself adapting to the horizon's
-demand. (Freezing the neighbours' fleets at 2024 while every zone carries
-2050 demand was tried first; it put southern Norway at the value of lost
-load in every hour of the year, and every Danish export price with it.)
+candidate menu, capped at their published potentials, and pay the same
+carbon price: the question the model answers is what Denmark should build,
+given a neighbourhood that is itself adapting to the horizon's demand.
+(Freezing the neighbours' fleets at 2024 while every zone carries 2050
+demand, which neighbours_extendable=False still does, puts southern Norway
+at the value of lost load in every hour of the year, and every Danish
+export price with it.)
 """
 
 import logging
@@ -106,16 +113,14 @@ def _fuel(carrier: str, field: str) -> float:
 GAS_PRICE = _fuel("gas", "price_used_eur_per_mwh_th")
 GAS_CO2_T_PER_MWH_TH = _fuel("gas", "co2_used_t_per_mwh_th")
 
-# The carbon price everyone in the neighbourhood pays, EUR/t: the EU ETS,
-# at the level section 2 uses for its carbon-tax experiment (the range of
-# recent allowance prices). It is charged on every emitter in every zone,
-# existing plant and candidate alike, and the Danish CO2 budget sits ON TOP
-# of it -- so the budget's dual sigma is the additional price a Danish
-# territorial target needs beyond the ETS, and the fuel-switching
-# arithmetic of section 7 reads sigma + ETS_PRICE = (c_bio - c_gas) / e.
-# Without it the neighbours, free to build under a 2050 load, put up tens of
-# gigawatts of unpriced gas and keep their coal running, which is not a
-# neighbourhood any Danish target would be set in.
+# The reference carbon price, EUR/t: the EU ETS at the level section 2 uses
+# for its carbon-tax experiment (the range of recent allowance prices).
+# build() charges it on every emitter in every zone, existing plant and
+# candidate alike. Section 7 sweeps the price around this level, and its
+# Danish-budget scenario sets it to zero and puts a territorial CO2 budget
+# on Danish generation instead. Without a price, the neighbours, free to
+# build under a 2050 load, put up tens of gigawatts of unpriced gas and keep
+# their coal running, which is the world that scenario's leakage comes from.
 ETS_PRICE = 85.0
 
 
@@ -158,12 +163,14 @@ DK_ZONES = ["DK1", "DK2"]
 # inherits (first one present in the zone wins).
 #
 # Two candidates exist to be *declined or barely used*, and that is their
-# job: `nuclear` demonstrates that at 2030 costs the LP builds none, and
-# `ocgt_biogas` — the same machine as `ocgt` burning biomethane at zero
-# fossil CO2 — is the backstop that caps the carbon price: however tight
-# the budget, the model can always switch the peaker's fuel, so the CO2
-# budget's dual can never exceed roughly the fuel-price gap divided by the
-# gas plant's emission rate (section 2's fuel-switching arithmetic).
+# job: `nuclear` demonstrates that at the horizon's costs the LP builds
+# none, and `ocgt_biogas` — the same machine as `ocgt` burning biomethane at
+# zero fossil CO2 — is the fuel-switching margin. Once the carbon price
+# passes the fuel-price gap divided by the gas plant's emission rate
+# (section 2's fuel-switching arithmetic), the peakers burn biomethane.
+# Under a CO2 budget that margin is a plateau in the budget's dual, not a
+# ceiling: it holds the price only while there is peaker gas left to switch
+# (section 7.4).
 CANDIDATES = {
     "solar_pv": "solar-utility",
     "wind_onshore": "onwind",
@@ -448,7 +455,7 @@ def build(
     #
     # Their fleets are kept and may be added to (below): the system around
     # Denmark is the one that exists plus whatever a 2050 load makes it
-    # worth building, under no carbon constraint of its own. total_twh, not
+    # worth building, at the same carbon price as Denmark. total_twh, not
     # base_twh: this section has no separate EV block, so the vehicles
     # belong in the load.
     scale_load(n, list(n.loads_t.p_set.columns), column="total_twh")

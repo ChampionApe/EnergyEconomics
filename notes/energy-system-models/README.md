@@ -82,7 +82,7 @@ source (Energi Data Service, Open-Meteo, TYNDP, technology-data) and
 reproduces the processed files byte-for-byte; it is slow and you will not
 need it. `data/processed/network_eur_bz_2024.nc` — the 12-bidding-zone
 DK/DE/SE/NO network of §6–§9 — is not produced by it at all: derived once
-from PyPSA-Eur (the note's Appendix C documents how) and vendored; you load
+from PyPSA-Eur (the note's Appendix B documents how) and vendored; you load
 it, you don't rebuild it.
 
 ## Reproduce the note's figures
@@ -176,7 +176,7 @@ by hand and passes it to the same solver.
 - §4: give the battery 8 hours instead of 4 and see what happens to wind's
   capture price in the recovery experiment.
 - §7: change the discount rate in `model/greenfield.py` and reconcile the
-  new mix with the annuity formula of the note's Appendix B.
+  new mix with the annuity formula of the note's section 7.1.
 
 The marginal costs and emission rates the note prints are computed by the
 model from the same file (`data/processed/technology_costs_small.csv`) at

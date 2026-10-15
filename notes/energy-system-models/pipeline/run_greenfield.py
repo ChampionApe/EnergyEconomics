@@ -23,7 +23,9 @@ over, so that its reference column is this section's reference case:
                 territorial CO2 budget on Danish generation alone -- the
                 instrument section 2 called a cap, in an open economy
     recovery    Result 6 in numbers, zone by zone, the LCOE-against-capture
-                table and the scarcity curve, all at the reference case
+                table, the peakers' earnings by price band and the system
+                through its longest scarcity spell, all at the reference
+                case
     check       the small table against technology-data -> results/costs_check.csv
 
 Solved networks are cached in results/cache/ keyed by experiment, instance
@@ -114,6 +116,21 @@ def cache_name(experiment: str, tag: str, hours: int, aggregation: str) -> str:
     return f"{experiment}_{tag}_{hours}{suffix}.nc"
 
 
+def fingerprint_bytes(path: Path) -> bytes:
+    """What the cache fingerprint hashes for one input file.
+
+    Text is hashed with its line endings normalised. Git rewrites them on
+    checkout (CRLF on Windows, LF elsewhere), and data/prepare.py on Windows
+    writes an LF comment header over CRLF rows, so the same content can
+    arrive as different bytes; a change of line endings is not a change of
+    input. The network (.nc) is binary and is hashed as it is.
+    """
+    if not path.exists():
+        return b"<missing>"
+    data = path.read_bytes()
+    return data if path.suffix == ".nc" else data.replace(b"\r\n", b"\n")
+
+
 def input_fingerprint(costs_full=None, aggregation: str = "segments",
                       weather=None) -> str:
     """A short hash of everything a cached solve depends on.
@@ -123,6 +140,7 @@ def input_fingerprint(costs_full=None, aggregation: str = "segments",
     source, the constants not read from any file, the cost table the case
     is solved on and the weather it is solved on are hashed, and the print
     is stored with the solve. A stale solve is re-solved, never trusted.
+    Files are read through fingerprint_bytes(), so line endings do not count.
     """
     h = hashlib.sha256()
     for path in [PROCESSED / f"fuel_assumptions_{greenfield.FORWARD_HORIZON}.csv",
@@ -133,14 +151,14 @@ def input_fingerprint(costs_full=None, aggregation: str = "segments",
                  PROCESSED / "potentials_zones.csv",
                  PROCESSED / "hydro_calibration.csv",
                  NETWORK_NC]:
-        h.update(path.read_bytes() if path.exists() else b"<missing>")
+        h.update(fingerprint_bytes(path))
     if weather is not None:
         h.update(pd.util.hash_pandas_object(
             weather, index=True).to_numpy().tobytes())
     # Changing how a case is BUILT must invalidate the cases already
     # solved. Only the modules this section builds from are hashed.
     for module in ["greenfield.py", "network.py"]:
-        h.update((NOTE / "model" / module).read_bytes())
+        h.update(fingerprint_bytes(NOTE / "model" / module))
     h.update(repr([
         greenfield.DISCOUNT_RATE, greenfield.GAS_PRICE,
         greenfield.GAS_CO2_T_PER_MWH_TH, greenfield.BATTERY_MENU_HOURS,
@@ -481,40 +499,182 @@ def value_table(n, tau):
     return df
 
 
+# The price bands the peakers' earnings are counted in, EUR/MWh, above the
+# two edges the economics supplies: the peakers' running cost, below which
+# they earn nothing, and the flexible demand block's willingness to pay.
+PEAKER_PRICE_BANDS = [200.0, 1000.0]
+
+
+def scarcity_spells(price, hours, threshold) -> pd.DataFrame:
+    """The runs of consecutive snapshots in which `price` is at or above
+    `threshold`: the snapshot each run starts at, and its length in hours
+    (`hours` is each snapshot's length, its objective weight)."""
+    rows, start, run = [], None, 0.0
+    for t, high, h in zip(price.index, (price >= threshold - 1e-6).to_numpy(),
+                          hours.reindex(price.index).to_numpy()):
+        if high:
+            if start is None:
+                start = t
+            run += float(h)
+        elif start is not None:
+            rows.append((start, run))
+            start, run = None, 0.0
+    if start is not None:
+        rows.append((start, run))
+    return pd.DataFrame(rows, columns=["start", "hours"])
+
+
 def scarcity_profile(n):
-    """How the peakers get paid: the DK1 price duration curve in hours, and
-    the cumulative share of the peaking fleet's annual operating margin
-    earned in its best hours. Returns the curve and a few summary numbers."""
-    w = n.snapshot_weightings.objective
-    hourly_price = network.expand_to_hours(n, n.buses_t.marginal_price[["DK1"]])["DK1"]
+    """How the peakers get paid, in the zone where they stand.
+
+    The hours of the year are sorted into price bands: below the peakers'
+    running cost (carbon included), up to the flexible block's willingness
+    to pay, then PEAKER_PRICE_BANDS. For each band the share of the year's
+    hours is set against the share of the peaking fleet's annual operating
+    margin earned in it. Each peaker's margin is counted at its own zone's
+    price; the hours are those of the zone with the most peaking capacity.
+    Returns the band table and a few summary numbers."""
     peakers = [g for g, row in n.generators.iterrows()
                if row.bus in greenfield.DK_ZONES
-               and row.carrier in ("ocgt", "ocgt_biogas")]
-    margin = pd.Series(0.0, index=n.snapshots)
-    for g in peakers:
-        row = n.generators.loc[g]
-        margin += (n.buses_t.marginal_price[row.bus] - row.marginal_cost) * n.generators_t.p[g]
-    hourly_margin = network.expand_to_hours(n, margin.to_frame("m"))["m"]
-    sorted_margin = hourly_margin.sort_values(ascending=False).reset_index(drop=True)
-    total = float(sorted_margin.sum())
-    cum_share = sorted_margin.cumsum() / total if total > 0 else sorted_margin * 0.0
-    curve = pd.DataFrame({
-        "hour_rank": range(1, len(hourly_price) + 1),
-        "dk1_price_sorted": hourly_price.sort_values(ascending=False).to_numpy(),
-        "peaker_margin_cum_share": cum_share.to_numpy(),
-    })
+               and row.carrier in ("ocgt", "ocgt_biogas") and row.p_nom_opt > 1.0]
+    prices = network.expand_to_hours(
+        n, n.buses_t.marginal_price[list(greenfield.DK_ZONES)])
     blocks = {c: wtp for c, _, wtp in greenfield.DK_DEMAND_BLOCKS}
-    summary = {
-        "peaker_margin_total_eur": total,
-        "peaker_capacity_mw": float(n.generators.loc[peakers, "p_nom_opt"].sum()),
-        "share_in_top_100_hours": float(cum_share.iloc[99]) if len(cum_share) > 99 else None,
-        "share_in_top_500_hours": float(cum_share.iloc[499]) if len(cum_share) > 499 else None,
-        "hours_price_above_flex_block": int((hourly_price >= blocks["shed_flex"] - 1e-6).sum()),
-        "hours_price_above_industry_block": int((hourly_price >= blocks["shed_industry"] - 1e-6).sum()),
-        "hours_price_at_voll": int((hourly_price >= greenfield.VOLL_EUR_MWH - 1e-6).sum()),
-        "dk1_max_price": float(hourly_price.max()),
+    summary = {"dk_max_price": float(prices.max().max()),
+               "peaker_capacity_mw": float(n.generators.loc[peakers, "p_nom_opt"].sum())}
+    if not peakers:
+        return pd.DataFrame(), summary
+
+    capacity = n.generators.loc[peakers].groupby("bus")["p_nom_opt"].sum()
+    zone = str(capacity.idxmax())
+    running = float(n.generators.loc[peakers, "marginal_cost"].min())
+    edges = sorted({running, blocks["shed_flex"], *PEAKER_PRICE_BANDS})
+    bins = [-np.inf, *edges, np.inf]
+    margin = network.expand_to_hours(n, pd.DataFrame({
+        g: (n.buses_t.marginal_price[n.generators.at[g, "bus"]]
+            - n.generators.at[g, "marginal_cost"]) * n.generators_t.p[g]
+        for g in peakers}))
+    band_margin = pd.Series(0.0, index=range(len(bins) - 1))
+    for g in peakers:
+        band = pd.cut(prices[n.generators.at[g, "bus"]], bins, right=False, labels=False)
+        band_margin = band_margin.add(margin[g].groupby(band).sum(), fill_value=0.0)
+    band_hours = pd.cut(prices[zone], bins, right=False, labels=False).value_counts()
+    bands = pd.DataFrame({
+        "lower_eur_mwh": bins[:-1], "upper_eur_mwh": bins[1:],
+        "hours": band_hours.reindex(range(len(bins) - 1), fill_value=0).to_numpy(),
+    })
+    bands["hours_share"] = bands["hours"] / bands["hours"].sum()
+    bands["margin_share"] = (band_margin / band_margin.sum()).to_numpy()
+
+    hourly = margin.sum(axis=1).sort_values(ascending=False).reset_index(drop=True)
+    cum_share = hourly.cumsum() / hourly.sum()
+    # The scarce hours come in spells, not one at a time: runs of
+    # consecutive snapshots with the price at or above the flexible block's
+    # willingness to pay, in hours, set against the longest battery on the
+    # menu -- the reason the system holds turbines beside its batteries.
+    spells = scarcity_spells(n.buses_t.marginal_price[zone],
+                             n.snapshot_weightings.objective, blocks["shed_flex"])["hours"]
+    longest_battery = max(greenfield.BATTERY_MENU_HOURS)
+    summary |= {
+        "scarcity_spells": int(len(spells)),
+        "scarcity_spell_shortest_hours": float(spells.min()) if len(spells) else 0.0,
+        "scarcity_spell_median_hours": float(spells.median()) if len(spells) else 0.0,
+        "scarcity_spell_longest_hours": float(spells.max()) if len(spells) else 0.0,
+        "scarcity_hours_in_spells_beyond_battery_share": (
+            float(spells[spells > longest_battery].sum() / spells.sum())
+            if len(spells) else 0.0),
     }
-    return curve, summary
+    summary |= {
+        "peaker_zone": zone,
+        "peaker_running_cost": running,
+        "peaker_margin_total_eur": float(hourly.sum()),
+        "share_in_top_100_hours": float(cum_share.iloc[99]),
+        "share_in_top_500_hours": float(cum_share.iloc[499]),
+        "hours_price_above_flex_block": int((prices[zone] >= blocks["shed_flex"] - 1e-6).sum()),
+        "hours_price_above_industry_block": int((prices[zone] >= blocks["shed_industry"] - 1e-6).sum()),
+        "hours_price_at_voll": int((prices[zone] >= greenfield.VOLL_EUR_MWH - 1e-6).sum()),
+        "max_price_peaker_zone": float(prices[zone].max()),
+    }
+    return bands, summary
+
+
+def dk_net_export(n) -> pd.Series:
+    """Net export from Denmark per snapshot, MW: the power leaving the two
+    Danish zones on every branch that crosses the border, with the sign
+    convention of dk_trade_revenue (negative when Denmark imports)."""
+    net = pd.Series(0.0, index=n.snapshots)
+    for component, flows in (("Line", n.lines_t), ("Link", n.links_t)):
+        df = n.df(component)
+        if df.empty or "p0" not in flows:
+            continue
+        for zone in greenfield.DK_ZONES:
+            out = df.index[(df.bus0 == zone) & (~df.bus1.isin(greenfield.DK_ZONES))]
+            into = df.index[(df.bus1 == zone) & (~df.bus0.isin(greenfield.DK_ZONES))]
+            if len(out):
+                net = net.add(flows.p0[out].sum(axis=1), fill_value=0.0)
+            if len(into):
+                net = net.add(flows.p1[into].sum(axis=1), fill_value=0.0)
+    return net
+
+
+# The spell figure shows the reference system through its longest scarcity
+# spell, with this many days either side of it.
+SPELL_WINDOW_DAYS = 5
+
+
+def spell_window(n, zone):
+    """The reference system through its longest scarcity spell in `zone`
+    (the price at or above the flexible block's willingness to pay), for
+    the figure that shows what covers it. Per snapshot of the window: the
+    price, Danish load, the wind and solar the weather offers, the
+    batteries' state of charge and output, the turbines' output, the net
+    imports and the flexible demand shed. One row per snapshot; `hours` is
+    how many hours it stands for."""
+    w = n.snapshot_weightings.objective
+    blocks = {c: wtp for c, _, wtp in greenfield.DK_DEMAND_BLOCKS}
+    price = n.buses_t.marginal_price[zone]
+    spells = scarcity_spells(price, w, blocks["shed_flex"])
+    if spells.empty:
+        return pd.DataFrame()
+    longest = spells.loc[spells["hours"].idxmax()]
+    days = pd.Timedelta(days=SPELL_WINDOW_DAYS)
+    end = longest["start"] + pd.Timedelta(hours=float(longest["hours"])) + days
+    snaps = n.snapshots[(n.snapshots >= longest["start"] - days) & (n.snapshots < end)]
+    g = n.generators
+    danish = g.bus.isin(greenfield.DK_ZONES)
+    candidates = danish & g.p_nom_extendable
+    turbines = ["ocgt", "ocgt_biogas", "ccgt"]
+
+    def output(rows):
+        return n.generators_t.p.loc[snaps, rows].sum(axis=1)
+
+    def available(carriers):
+        rows = [r for r in g.index[candidates & g.carrier.isin(carriers)]
+                if r in n.generators_t.p_max_pu.columns]
+        return (n.generators_t.p_max_pu.loc[snaps, rows]
+                .mul(g.loc[rows, "p_nom_opt"], axis=1).sum(axis=1))
+
+    stores = n.storage_units.index[n.storage_units.bus.isin(greenfield.DK_ZONES)]
+    loads = [z for z in greenfield.DK_ZONES if z in n.loads_t.p_set.columns]
+    out = pd.DataFrame({
+        "hours": w.loc[snaps],
+        "price_eur_mwh": price.loc[snaps],
+        "load_mw": n.loads_t.p_set.loc[snaps, loads].sum(axis=1),
+        "wind_available_mw": available(["wind_onshore", "wind_offshore"]),
+        "solar_available_mw": available(["solar_pv"]),
+        "battery_mw": n.storage_units_t.p.loc[snaps, stores].sum(axis=1),
+        "battery_soc_mwh": n.storage_units_t.state_of_charge.loc[snaps, stores].sum(axis=1),
+        "turbine_mw": output(g.index[candidates & g.carrier.isin(turbines)]),
+        "net_import_mw": -dk_net_export(n).loc[snaps],
+        "flex_shed_mw": output(g.index[danish & (g.carrier == "shed_flex")]),
+    })
+    out["battery_energy_mwh"] = float(
+        (n.storage_units.loc[stores, "p_nom_opt"] * n.storage_units.loc[stores, "max_hours"]).sum())
+    out["turbine_capacity_mw"] = float(
+        g.loc[g.index[candidates & g.carrier.isin(turbines)], "p_nom_opt"].sum())
+    out["in_spell"] = out["price_eur_mwh"] >= blocks["shed_flex"] - 1e-6
+    out.index.name = "time"
+    return out
 
 
 def run_scenarios(costs_full, hours, aggregation):
@@ -646,7 +806,9 @@ def main():
     duty = realised_duty(n_ref)
     recovery = cost_recovery(n_ref)
     values = value_table(n_ref, REFERENCE_TAX)
-    scarcity_curve, scarcity = scarcity_profile(n_ref)
+    price_bands, scarcity = scarcity_profile(n_ref)
+    spell = (spell_window(n_ref, scarcity["peaker_zone"])
+             if scarcity.get("peaker_zone") else pd.DataFrame())
     scenarios = run_scenarios(costs_full, args.hours, args.aggregation)
     check = costs_check(costs_full)
 
@@ -681,15 +843,17 @@ def main():
     duty.to_csv(RESULTS / "greenfield_realised_duty.csv", index_label="tech")
     recovery.to_csv(RESULTS / "greenfield_cost_recovery.csv", index=False)
     values.to_csv(RESULTS / "greenfield_value_table.csv", index_label="tech")
-    scarcity_curve.to_csv(RESULTS / "greenfield_scarcity.csv", index=False)
+    price_bands.to_csv(RESULTS / "greenfield_price_bands.csv", index=False)
+    spell.to_csv(RESULTS / "greenfield_spell_window.csv", index_label="time")
     scenarios.to_csv(RESULTS / "greenfield_scenarios.csv", index_label="scenario")
     check.to_csv(RESULTS / "costs_check.csv", index_label="tech")
     (RESULTS / "greenfield_summary.json").write_text(
         json.dumps(summary, indent=2), encoding="utf-8"
     )
-    stale = RESULTS / "greenfield_budget_sweep.csv"
-    if stale.exists():
-        stale.unlink()      # the budget sweep this replaced
+    for stale in ["greenfield_budget_sweep.csv",    # the budget sweep the tax sweep replaced
+                  "greenfield_scarcity.csv"]:       # the duration curve the price bands replaced
+        if (RESULTS / stale).exists():
+            (RESULTS / stale).unlink()
 
     ref = sweep.loc[sweep["carbon_price"] == REFERENCE_TAX].iloc[0]
     print(f"{args.hours} hours: at {REFERENCE_TAX:.0f} EUR/t Denmark emits "
@@ -701,8 +865,9 @@ def main():
     for name in ["greenfield_screening.csv", "greenfield_tax_sweep.csv",
                  "greenfield_cost_breakdown.csv", "greenfield_realised_duty.csv",
                  "greenfield_cost_recovery.csv", "greenfield_value_table.csv",
-                 "greenfield_scarcity.csv", "greenfield_scenarios.csv",
-                 "costs_check.csv", "greenfield_summary.json"]:
+                 "greenfield_price_bands.csv", "greenfield_spell_window.csv",
+                 "greenfield_scenarios.csv", "costs_check.csv",
+                 "greenfield_summary.json"]:
         print(f"wrote results/{name}")
 
 

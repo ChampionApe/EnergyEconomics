@@ -64,7 +64,7 @@ Currently prepares:
 
 Not prepared here: processed/network_eur_bz_2024.nc — the 12-bidding-zone
 network of sections 6-8 is the exported product of the PyPSA-Eur stage-0 run
-(documented in the note's Appendix C) and is vendored directly.
+(documented in the note's Appendix B) and is vendored directly.
 """
 
 import io
@@ -389,7 +389,7 @@ def _wind_capacity_factor(speed):
 # zone is sampled on a five-point cross whose width reflects how large the
 # zone is. It is a crude stand-in for the proper aggregation, and the achieved
 # correlations are checked against the network's own profiles rather than
-# assumed (see the note's Appendix C).
+# assumed (see the note's Appendix B).
 ZONE_SPREAD_DEG = {
     "DE": (2.5, 3.5),
     "DK1": (0.7, 1.0), "DK2": (0.5, 0.8),
@@ -1037,7 +1037,7 @@ def prepare_exchange(area: str, year: int):
 
 # ---------------------------------------------------------------------------
 # The 12-zone network of sections 6-8 is NOT built here. It is the exported
-# product of the PyPSA-Eur stage-0 run (see the note's Appendix C):
+# product of the PyPSA-Eur stage-0 run (see the note's Appendix B):
 # vendored as processed/network_eur_bz_2024.nc together with
 # network_zones.json and network_eur_bz_2024_fleet.csv. The upstream run and
 # the export script live in scratch/pypsa-eur/ and are documented there.
@@ -1070,7 +1070,7 @@ def prepare_exchange(area: str, year: int):
 # licence to build the North Sea. Both numbers are recorded beside the used
 # one, the same source-beside-used format as the fuel and battery blocks.
 #
-# Limitations, recorded in the note's Appendix D rather than smoothed over:
+# Limitations, recorded in the note's Appendix C rather than smoothed over:
 # the stage-0 export dropped generators with zero capacity, so a zone with
 # no existing plant of a kind has neither a potential nor an availability
 # profile for it, and therefore gets no candidate -- no offshore in NO1,
@@ -1406,7 +1406,7 @@ def prepare_ev_demand():
 # and 12.1 GW at 69), capped at roughly 151 TWh a year against a demand of
 # 265. Denmark and Sweden have none, and must reform or electrolyse.
 #
-# One honest wrinkle, recorded in the output and in Appendix D: the corridor
+# One honest wrinkle, recorded in the output and in Appendix C: the corridor
 # runs from Norway, which is inside this model's own footprint. Because the
 # model carries no hydrogen network, Norwegian export cannot be represented
 # as such, and TYNDP's corridor is used as exogenous supply into Germany
@@ -1476,7 +1476,7 @@ def prepare_h2_imports():
         "#   have none and must reform or electrolyse their own hydrogen.",
         "# The corridor runs from Norway, which is inside this model's own",
         "#   footprint; with no hydrogen network to represent that export,",
-        "#   it enters as exogenous supply into Germany. See Appendix D.",
+        "#   it enters as exogenous supply into Germany. See Appendix C.",
         "",
     ])
     table = pd.DataFrame(rows).sort_values(["zone", "price_eur_per_mwh_h2"])
@@ -2616,7 +2616,7 @@ def prepare_reference_ntc():
 
 # Norway's 2024 hydro year, for section 6's calibration of the network's
 # inflow. The shipped network normalises the 2024 runoff to an annual level
-# by a regression (Appendix C), and lands 25-30 TWh short of what Norway's
+# by a regression (Appendix B), and lands 25-30 TWh short of what Norway's
 # plants actually produced in a record year. Section 6, which is held
 # against 2024, scales reservoir inflow so that reservoir output plus
 # run-of-river equals the published production; sections 7-9, which look

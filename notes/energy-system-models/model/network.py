@@ -6,7 +6,7 @@ German power markets — with 2024 hourly loads and weather, today's fleets
 (from powerplantmatching/OPSD), reservoir hydro with historical inflow, and
 the real transmission system: AC circuits and the named DC cables
 (Skagerrak, Kontek, Konti-Skan, the Great Belt, NordLink, Baltic Cable). It
-was derived from PyPSA-Eur, clustered to bidding zones; Appendix C of the
+was derived from PyPSA-Eur, clustered to bidding zones; Appendix B of the
 note documents the derivation.
 
 This module is what the run scripts use to work with it: load it, subsample
@@ -115,7 +115,7 @@ VOM_TECH_OF_CARRIER = {
 # LP, degenerated the crossover, and the capacity-expansion literature
 # does not carry reserves in comparable solves either — PyPSA-Eur ships
 # it off. Forecast-error cover therefore remains a named omission in the
-# note's Appendix D, not a feature.) The appendix documents each feature,
+# note's Appendix C, not a feature.) The appendix documents each feature,
 # with its parameters and its known limitations; keep it in step with
 # these constants.
 
@@ -270,7 +270,7 @@ def normalise_hydro(n: pypsa.Network, table_path: Path) -> dict:
     hydro_calibration.csv (Norway: NVE's 137.6 TWh, reference 1991-2020).
 
     The shipped network normalises its 2024 runoff by a regression that
-    lands about ten percent below a normal year (Appendix C), which is the
+    lands about ten percent below a normal year (Appendix B), which is the
     wrong level for the 2050 reference cases of sections 7-9. Section 6,
     held against the 2024 market, scales further to that year's published
     production on top of this. Returns {country: factor}. Spill is not

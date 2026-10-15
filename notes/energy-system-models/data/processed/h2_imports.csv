@@ -8,7 +8,7 @@
 #   have none and must reform or electrolyse their own hydrogen.
 # The corridor runs from Norway, which is inside this model's own
 #   footprint; with no hydrogen network to represent that export,
-#   it enters as exogenous supply into Germany. See Appendix D.
+#   it enters as exogenous supply into Germany. See Appendix C.
 zone,corridor,p_nom_mw,price_eur_per_mwh_h2
 DE,Ammonia-DE-LOW,1001.1,0.0
 DE,NO-DE-LOW,5171.2,41.4

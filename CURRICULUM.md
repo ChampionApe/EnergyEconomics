@@ -152,7 +152,7 @@ summaries of them, and they assume you have read the note sections they build on
 
 **Required**
 
-- **Berg (2026).** “Energy System Models.” Read section 7, and appendix B for the annuity.  
+- **Berg (2026).** “Energy System Models.” Read section 7.  
   [Link](https://github.com/ChampionApe/EnergyEconomics/blob/main/notes/energy-system-models.pdf)
   
   *From dispatch to investment: annualised capital, screening curves, the greenfield problem, long-run zero profit, and what a rising carbon price builds.*
@@ -176,14 +176,14 @@ summaries of them, and they assume you have read the note sections they build on
 
 **Required**
 
-- **Berg (2026).** “Energy System Models.” Read sections 8 and 9, and appendix E.  
+- **Berg (2026).** “Energy System Models.” Read sections 8 and 9, and appendix D.  
   [Link](https://github.com/ChampionApe/EnergyEconomics/blob/main/notes/energy-system-models.pdf)
   
   *The model at continental scale under a carbon budget, the division of labour between storage technologies, hydrogen; then what changes with the weather year, the cost catalogue and foresight, and what the model cannot say.*
 - **Victoria et al. (2019).** “The Role of Storage Technologies Throughout the Decarbonisation of the Sector-Coupled European Energy System.” *Energy Conversion and Management* 201, 111977.  
   [DOI](https://doi.org/10.1016/j.enconman.2019.111977) · [Open version](https://arxiv.org/abs/1906.06936)
   
-  *The workshop paper, and the one section 8 of the note is written against: batteries for the daily solar cycle, hydrogen for wind's longer swings, and neither of them until emissions are cut past about 80%. Appendix E tests two of its claims directly.*
+  *The workshop paper, and the one section 8 of the note is written against: batteries for the daily solar cycle, hydrogen for wind's longer swings, and neither of them until emissions are cut past about 80%. Appendix D tests two of its claims directly.*
 
 **Supplementary**
 

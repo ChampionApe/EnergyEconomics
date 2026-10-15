@@ -11,7 +11,7 @@ single solve. Each script owns the files that carry its prefix.
 | `storage_*` | `run_storage.py` | §4 (and fig. 9.6) | battery arbitrage, the ramp sweep and the recovery experiment |
 | `heat_*` | `run_heat.py` | §5 | heat pump dispatch and the rollout sweep |
 | `network_*` | `run_network.py` | §6 | zonal prices, congestion rents, the calibration and validation, the expansion accounts |
-| `greenfield_*` | `run_greenfield.py` | §7 | screening curves, cost recovery, scarcity rents, the optimal mix and its scenarios |
+| `greenfield_*` | `run_greenfield.py` | §7 | screening curves, cost recovery, scarcity rents and the longest scarcity spell, the optimal mix and its experiments |
 | `expansion_*` | `run_expansion.py` | §8 | the three-rung expansion ladder on the twelve-zone network |
 | `weather_*` | `run_weather.py` | §9 | the §7 reference case re-solved on each weather year |
 | `costs_*` | `run_costs.py` | §9 | the same under pessimistic and optimistic cost readings |

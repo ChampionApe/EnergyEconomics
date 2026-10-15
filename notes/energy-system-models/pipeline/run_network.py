@@ -8,14 +8,14 @@ need into results/.
                                                   model/network.py)
 
 Experiments on the 12-bidding-zone DK/DE/SE/NO network derived from
-PyPSA-Eur (see Appendix C of the note; data/processed/network_eur_bz_2024.nc):
+PyPSA-Eur (see Appendix B of the note; data/processed/network_eur_bz_2024.nc):
 
     base      one year of zonal dispatch     -> figs 6.1, 6.2 (prices, rents),
               at the 2024 ETS average (CARBON_TAU), on the network
               calibrated to its year (Norwegian inflow, Nordic NTCs);
               the validation figure holds it against the actual market,
               and the calibration check solves the four combinations of
-              the two calibrations for Appendix C
+              the two calibrations for Appendix B
     smoothing DK1 vs DK2 wind, from data     -> fig 6.3
     expansion the Skagerrak corridor (DK1 to
               southern Norway) swept from 0  -> fig 6.4 (system cost saving
@@ -334,7 +334,7 @@ def country_balance(n) -> pd.DataFrame:
 def run_calibration_check(hours, tau, hydro_factors, aggregation="segments"):
     """The four combinations of the two calibrations, solved at the
     section's carbon price: mean zonal prices, and each country's hydro
-    output and net export. What Appendix C quotes when it says what the
+    output and net export. What Appendix B quotes when it says what the
     calibration does."""
     rows = []
     for hydro, ntc in [(False, False), (True, False), (False, True), (True, True)]:
@@ -511,7 +511,7 @@ def main():
     parser.add_argument(
         "--skip-calibration-check", action="store_true",
         help="do not solve the four calibration combinations (saves four "
-        "solves; Appendix C's calibration table is then not rebuilt)",
+        "solves; Appendix B's calibration table is then not rebuilt)",
     )
     args = parser.parse_args()
     RESULTS.mkdir(parents=True, exist_ok=True)
