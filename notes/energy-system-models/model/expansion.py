@@ -1,31 +1,38 @@
 """Section 8: capacity expansion for the whole twelve-zone system.
 
-Section 7 rebuilds Denmark and holds its neighbours fixed, under a Danish
-CO2 budget. That is the right shape for learning what a capacity expansion
-model *is* -- the margin that sets the carbon price is identifiable by hand,
-and the budget's territorial edge is itself a lesson. It is not the shape the
-literature works in. This module is the other one: every zone may build
-beside the fleet it already has, and one CO2 budget covers all of them.
+Section 7 rebuilds Denmark from scratch beside neighbours that keep their
+fleets, under a common carbon price. That is the right shape for learning
+what a capacity expansion model *is* -- the margin that sets the carbon price
+is identifiable by hand. It is not the shape the literature works in. This
+module is the other one: every zone may build beside the fleet it already
+has, and one CO2 budget covers all of them.
 
-It is built in three rungs, so what each ingredient does is visible rather
-than asserted:
+It is built as nested scenarios, so what each ingredient does is visible
+rather than asserted:
 
-    (i)   basic    twelve zones extendable, one EU-wide budget, no
-                   industrial hydrogen at all; vehicles charge on a fixed
-                   profile
-    (ii)  + EV     the same system, the charging block's timing now a choice
-    (iii) + H2     the industrial hydrogen sector AND the electrolytic route
-                   -- reformers, imports, electrolyser, store and turbine
+    basic    twelve zones extendable, one EU-wide budget, buyable
+             interconnectors, no industrial hydrogen; every vehicle charges
+             on arrival
+    ev       + smart charging: the passenger cars' batteries become a store
+             between the grid and the driving
+    ev_v2g   + vehicle-to-grid: that store may also discharge to the grid
+             (a branch off ev; the hydrogen scenario does not have it)
+    ev_h2    ev + the industrial hydrogen sector AND every route to meeting
+             it -- reformers, imports, electrolyser, store and turbine
 
-Rungs (i) and (ii) are the same system and differ only in flexibility, so
-their costs, emissions and carbon prices compare directly. Rung (iii) is
+basic, ev and ev_v2g are the same system and differ only in flexibility, so
+their costs, emissions and carbon prices compare directly. ev_h2 is
 deliberately NOT the same system: it carries an industrial hydrogen demand
 the others do not have, because a Europe that declines to build a hydrogen
 economy really is a smaller system, and inventing an "equivalent" electricity
-demand for the others would presume the electrolysis that rung (iii) exists
-to test. So (ii) -> (iii) is not a marginal-effect comparison. It answers
-"what does adding the hydrogen economy do to the power system", and each
-rung's budget is a fraction of ITS OWN unconstrained emissions.
+demand for the others would presume the electrolysis that ev_h2 exists to
+test. So ev -> ev_h2 is not a marginal-effect comparison. It answers "what
+does adding the hydrogen economy do to the power system", and ev_h2's budget
+is a fraction of ITS OWN unconstrained emissions.
+
+Biomethane is a drop-in fuel: every gas plant, existing or new, and every
+reformer may burn it in place of natural gas, up to one ceiling for all
+zones (solve()).
 
 Brownfield, not greenfield: existing plant is kept and is not retirable. The
 capital is sunk, so a plant may simply not run -- and wiping twelve zones
@@ -37,6 +44,7 @@ Instance size is a parameter, as everywhere else in this note. The default
 
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import pypsa
 
@@ -56,12 +64,17 @@ candidate_headroom = greenfield.candidate_headroom
 native_profile = greenfield.native_profile
 add_candidates = greenfield.add_candidates
 
-# Annual electric-vehicle electricity demand per zone, TWh. Also from
-# prepare.py, and also source-beside-used: Norway is not in the dataset and
-# carries the mean share of the zones that are.
-EV_DEMAND_TWH = pd.read_csv(
-    PROCESSED / "ev_assumptions.csv", comment="#"
-).set_index("zone")["ev_twh_used"]
+# The vehicle fleet per zone and vehicle type: counts, battery and charger
+# sizes, and the energy each type draws from the grid in a year. Written by
+# data/prepare.py from TYNDP's EV modelling inputs, source beside used;
+# Norway is not in them and carries Sweden's fleet per head.
+EV_FLEET = pd.read_csv(PROCESSED / "ev_fleet.csv", comment="#")
+# Hour by hour over the year, one column per zone and series: driving,
+# charging on arrival, the share of cars plugged in, and the minimum charge.
+# Also from prepare.py; mapped onto the snapshots after the year is cut
+# (to_snapshots), so the vehicles never move a segment boundary.
+EV_PROFILES = pd.read_csv(PROCESSED / "ev_profiles.csv", comment="#",
+                          index_col=0)
 
 # Annual industrial hydrogen demand per zone, TWh of hydrogen. Same source
 # family and the same source-beside-used format; see the hydrogen sector
@@ -100,13 +113,12 @@ H2_DEMAND_TWH = pd.read_csv(
 # is worth holding. A salt cavern is a factor of twenty cheaper per kWh than
 # a tank, and salt geology is not evenly distributed: Germany has by far
 # Europe's largest cavern potential and Denmark has operating caverns at
-# Lille Torup and Stenlille, while Norway and Sweden sit on crystalline
-# bedrock with essentially none (Caglayan et al. 2020). So the two countries
-# with salt get cavern costs and the two without get tanks, and the note says
-# so rather than giving everyone the cheap number.
-# The ceiling per zone, GWh of hydrogen, from TYNDP rather than from a list
-# written by hand. Zones absent from the source get none, and every zone
-# keeps the uncapped tank beside it, so "nobody builds tanks" stays a result.
+# Lille Torup and Stenlille, while Norway sits on crystalline bedrock with
+# none (Caglayan et al. 2020).
+# The ceiling per zone, GWh of hydrogen, comes from TYNDP rather than from a
+# list written by hand, and TYNDP gives the Swedish zones a cavern potential
+# too. Zones absent from the source get none, and every zone keeps the
+# uncapped tank beside it, so "nobody builds tanks" stays a result.
 H2_STORE_CEILING_GWH = pd.read_csv(
     PROCESSED / "h2_storage_potential.csv", comment="#", index_col="zone"
 )["max_gwh"]
@@ -152,26 +164,53 @@ H2_IMPORTS = pd.read_csv(PROCESSED / "h2_imports.csv", comment="#")
 H2_DEMAND_FLAT = True
 
 # ---------------------------------------------------------------------------
-# The electric-vehicle block.
+# The electric vehicles.
 #
-# The fleet's annual energy is data; the flexibility is the model assumption,
-# and it is a deliberately simple one. The block must meet its energy over a
-# day and may choose the hours within it: a store sized at one day of demand,
-# charged through a link with more power than the average draw needs, feeding
-# a load that follows the zone's own load shape.
+# Every scenario has the same vehicles drawing the same energy from the grid
+# in a year, TYNDP's projection, ADDED to the zone's load: TYNDP counts
+# vehicles outside its demand profiles, and so does this model. What changes
+# between scenarios is when the passenger cars may charge, and whether they
+# may give power back (add_ev()):
 #
-# The energy is carved OUT of the zone's load, never added to it. Every zone
-# already carries a projected 2050 load (demand_zones_2050.csv), and the
-# source counts road transport inside that total -- so adding an EV block on
-# top would count the same electricity twice.
-EV_STORE_DAYS = 1.0
-# An aggregate fleet can charge much faster than its average draw: the link is
-# sized at this multiple of mean charging power (or the carved profile's peak,
-# whichever is larger, so the block is never infeasible by construction).
-EV_CHARGER_HEADROOM = 3.0
-# TYNDP's demand figures are metered at the grid, so charging losses are
-# already inside them and the link is lossless.
-EV_CHARGER_EFFICIENCY = 1.0
+#   fixed  every vehicle charges on arrival, after Brown et al. (2018): a
+#          third of each hour's driving is charged in that hour and a third
+#          in each of the two that follow.
+#   smart  the passenger cars' batteries become a store between the grid and
+#          the driving, after Victoria et al. (2019) and PyPSA-Eur: one
+#          charger per zone rated for every car and derated by the share
+#          plugged in, losses on the way in, a minimum charge the store must
+#          keep (TYNDP's profile), and a participation share of the
+#          batteries made available to the system. Vans, buses and trucks
+#          still charge on arrival: TYNDP models only passenger cars as
+#          flexible vehicles.
+#   v2g    smart, and the made-available store may also discharge to the
+#          grid, through a link rated for the participating cars.
+#
+# The energy at the grid is TYNDP's figure in every mode, so the driving
+# drain is that figure times the charging efficiency, and only V2G's round
+# trips add to what the cars draw.
+EV_MODES = ("fixed", "smart", "v2g")
+# The share of the passenger cars' battery capacity made available to the
+# system (Victoria et al. 2019; TYNDP has none).
+EV_PARTICIPATION = 0.5
+# V2G discharge carries the stationary battery's operating charge (section
+# 4's c^s, the 0.1 EUR/MWh of greenfield.add_candidates()), so the cars do
+# not cycle between hours of equal price.
+V2G_MARGINAL_COST = 0.1
+
+# ---------------------------------------------------------------------------
+# Biomethane as a drop-in fuel, as in section 7 (greenfield.py,
+# BIOMETHANE_DROP_IN): each zone may buy biomethane for its gas plants and
+# reformers in place of natural gas, no more than they burn, under the one
+# ceiling for all zones (solve()).
+#
+# Here every gas plant may, the new gas turbine and the reformers included,
+# so the dedicated biomethane turbine would be the gas turbine twice over,
+# and two identical options would leave the split between them arbitrary:
+# build() removes it.
+BIOMETHANE_DROP_IN = greenfield.BIOMETHANE_DROP_IN
+GAS_CARRIERS = ("CCGT", "OCGT", "ccgt", "ocgt", "smr")
+BIOMETHANE_PRICE = greenfield.BIOMETHANE_PRICE
 
 
 def smr_emission_rate() -> float:
@@ -190,8 +229,9 @@ def emission_rates_with_smr(costs: pd.DataFrame) -> pd.Series:
 
 def add_hydrogen_sector(n: pypsa.Network, costs_full: pd.DataFrame, r: float,
                         gas_price: float) -> float:
-    """The hydrogen bus, its industrial demand and the reforming route that
-    can serve it — in EVERY rung, so the ladder's rungs stay comparable.
+    """The hydrogen bus, its industrial demand and the routes that can serve
+    it without electrolysis -- reforming and imports. The hydrogen scenario
+    only (see build()).
 
     Returns steam methane reforming's emission rate in tonnes per MWh of
     hydrogen, which the caller must add to the network's emission rates or
@@ -232,8 +272,8 @@ def add_hydrogen_sector(n: pypsa.Network, costs_full: pd.DataFrame, r: float,
 
 def add_p2x(n: pypsa.Network, costs_full: pd.DataFrame, r: float) -> None:
     """The electrolytic route: electrolyser, hydrogen store and hydrogen
-    turbine, added to the hydrogen buses the sector already created. This is
-    rung (ii)'s ingredient — the demand is not."""
+    turbine, added to the hydrogen buses the sector already created
+    (add_hydrogen_sector() brings the demand)."""
     el = costs_full.loc[ELECTROLYSER]
     tb = costs_full.loc[H2_TURBINE]
     el_capital = el["investment"] * 1e3 * (
@@ -358,55 +398,95 @@ def add_transmission(n: pypsa.Network, r: float) -> None:
         )
 
 
-def add_ev(n: pypsa.Network, flexible: bool) -> None:
-    """The electric-vehicle charging block, in EVERY rung.
+def ev_mode(ev) -> str:
+    """The charging mode a scenario asks for. False means "fixed" and True
+    "smart", so callers written before vehicle-to-grid keep working."""
+    if ev is None or ev is False:
+        return "fixed"
+    if ev is True:
+        return "smart"
+    if ev not in EV_MODES:
+        raise ValueError(f"ev must be one of {EV_MODES}, got {ev!r}")
+    return ev
 
-    The vehicles are not rung (iii)'s ingredient — their *flexibility* is.
-    TYNDP counts vehicles outside its demand profiles, so the base load this
-    model scales to does not contain them and they have to be added; and
-    adding them in one rung only would make that rung a system with more
-    demand than the rungs it is compared against, which is exactly what the
-    hydrogen sector above is arranged to avoid.
 
-    So both branches put the same energy into the system, and differ only in
-    when it may be drawn:
+def to_snapshots(n: pypsa.Network, hourly: pd.DatetimeIndex, values,
+                 how: str = "mean") -> pd.Series:
+    """Map an hourly series over the year onto the snapshots the year was cut
+    into. `hourly` is the network's own hourly index from before the cut, in
+    the order of `values`; each hour belongs to the snapshot at or before it,
+    which holds for chronological segments and for every-k-th-hour sampling
+    alike. `how` is "mean" for flows and shares, "max" for a floor, which a
+    segment must then respect throughout (PyPSA-Eur's rule)."""
+    values = np.asarray(values, dtype="float64")
+    if len(values) != len(hourly):
+        raise ValueError(f"{len(values)} hourly values for a {len(hourly)}-hour year")
+    owner = np.searchsorted(n.snapshots.values, hourly.values, side="right") - 1
+    grouped = pd.Series(values).groupby(owner)
+    out = grouped.mean() if how == "mean" else grouped.max()
+    out.index = n.snapshots[out.index.to_numpy()]
+    return out.reindex(n.snapshots)
 
-      inflexible  the charging follows the zone's own load shape, added
-                  straight onto the load. Cars charge when people are awake.
-      flexible    the same energy on its own bus behind a charger and a
-                  day's storage, so the model chooses the hours.
+
+def add_ev(n: pypsa.Network, ev, hourly: pd.DatetimeIndex) -> None:
+    """The electric vehicles, in EVERY scenario.
+
+    The vehicles are not the EV scenario's ingredient -- their *flexibility*
+    is. Every mode puts the same energy at the grid, TYNDP's projection for
+    each vehicle type, so the scenarios differ only in when the passenger
+    cars draw it and whether they give any back (the modes are described
+    above EV_MODES). Vans, buses and trucks charge on arrival in every mode.
     """
+    mode = ev_mode(ev)
     n.add("Carrier", "EV")
-    weights = n.snapshot_weightings.objective
+
+    def shape(zone, series, how="mean"):
+        return to_snapshots(n, hourly, EV_PROFILES[f"{zone}|{series}"], how)
+
     for zone in n.buses.index:
         if zone not in n.loads_t.p_set.columns:
             continue
-        energy_mwh = float(EV_DEMAND_TWH.get(zone, 0.0)) * 1e6
-        if energy_mwh <= 0:
+        fleet = EV_FLEET[EV_FLEET["zone"] == zone]
+        if fleet.empty:
             continue
-        load = n.loads_t.p_set[zone]
-        served = float((load * weights).sum())
-        if served <= 0:
-            continue
-        profile = load * (energy_mwh / served)
+        flexible = fleet["flexible"].astype(str).str.lower().eq("true")
+        cars, others = fleet[flexible], fleet[~flexible]
 
-        if not flexible:
-            n.loads_t.p_set[zone] = load + profile
+        others_mwh = float(others["grid_twh"].sum()) * 1e6
+        if others_mwh > 0:
+            n.loads_t.p_set[zone] += others_mwh * shape(zone, "arrival_other")
+        cars_mwh = float(cars["grid_twh"].sum()) * 1e6
+        if cars_mwh <= 0:
+            continue
+        if mode == "fixed":
+            n.loads_t.p_set[zone] += cars_mwh * shape(zone, "arrival_passenger")
             continue
 
+        eta = float(cars["efficiency"].iloc[0])
         bus = f"{zone} EV"
         n.add("Bus", bus, carrier="EV")
-        n.add("Load", f"{zone} EV charging", bus=bus, p_set=profile)
-        mean_draw = float((profile * weights).sum() / weights.sum())
+        n.add("Load", f"{zone} EV driving", bus=bus,
+              p_set=eta * cars_mwh * shape(zone, "drive_passenger"))
         n.add(
             "Link", f"{zone} EV charger", bus0=zone, bus1=bus,
-            carrier="ev_charger", efficiency=EV_CHARGER_EFFICIENCY,
-            p_nom=max(EV_CHARGER_HEADROOM * mean_draw, float(profile.max())),
+            carrier="ev_charger", efficiency=eta,
+            p_nom=float((cars["units"] * cars["charge_kw"]).sum()) / 1e3,
+            p_max_pu=shape(zone, "avail"),
         )
         n.add(
             "Store", f"{zone} EV battery", bus=bus, carrier="ev_battery",
-            e_nom=EV_STORE_DAYS * 24.0 * mean_draw, e_cyclic=True,
+            e_nom=EV_PARTICIPATION
+            * float((cars["units"] * cars["battery_kwh"]).sum()) / 1e3,
+            e_min_pu=shape(zone, "min_soc", how="max"), e_cyclic=True,
         )
+        if mode == "v2g":
+            n.add(
+                "Link", f"{zone} V2G", bus0=bus, bus1=zone, carrier="ev_v2g",
+                efficiency=eta, marginal_cost=V2G_MARGINAL_COST,
+                p_nom=EV_PARTICIPATION
+                * float((cars["units"] * cars["discharge_kw"]).sum()) / 1e3,
+                p_max_pu=shape(zone, "avail"),
+            )
 
 
 def emission_rates(n: pypsa.Network, candidate_rates: pd.Series) -> pd.Series:
@@ -430,7 +510,7 @@ def build(
     co2_budget: float | None = None,
     hydrogen: bool = False,
     p2x: bool = False,
-    ev: bool = False,
+    ev: bool | str = False,
     transmission: bool = False,
     r: float = greenfield.DISCOUNT_RATE,
     gas_price: float = greenfield.GAS_PRICE,
@@ -438,24 +518,26 @@ def build(
     weather: pd.DataFrame | None = None,
     carbon_tax: float | None = None,
 ) -> pypsa.Network:
-    """One rung of the ladder.
+    """One scenario.
 
-    `carbon_tax` charges every emitter in every zone tau EUR/t instead of
-    (or on top of) a budget: the tax-versus-cap experiment of the
-    uncertainty section, run on this system because here a cap binds.
+    `carbon_tax` charges every emitter in every zone tau EUR/t, instead of
+    or on top of a budget.
 
-    Every rung carries the hydrogen sector — an industrial demand and the
-    reforming route that can serve it — and the vehicles. `p2x` adds the
-    electrolytic route beside the reformers, and `ev` makes the charging
-    block's timing a choice rather than a fixed profile. `hours` and
-    `aggregation` decide how the year is reduced to snapshots
-    (network.aggregate); `weather` puts the year on the zonal weather
-    archive first, as section 7 does, so that sections 7-9 share one
+    Every scenario carries the vehicles; `ev` is their charging mode,
+    "fixed" (or False), "smart" (or True) or "v2g" (add_ev()). `hydrogen`
+    adds the hydrogen sector -- an industrial demand and the reforming and
+    import routes that can serve it -- and `p2x` the electrolytic route
+    beside them. `hours` and `aggregation` decide how the year is reduced to
+    snapshots (network.aggregate); `weather` puts the year on the zonal
+    weather archive first, as section 7 does, so that sections 7-9 share one
     construction of the weather (network.apply_weather).
     """
     n = greenfield.load_forward_network(nc_path)
     if weather is not None:
         network_model.apply_weather(n, weather)
+    # The year hour by hour, kept before it is cut: the vehicles' profiles
+    # are hourly, and to_snapshots() maps them onto the snapshots afterwards.
+    hourly = n.snapshots.copy()
     network_model.aggregate(n, hours, aggregation)
 
     # Every zone moves to the forward horizon, not only Denmark: in a
@@ -463,14 +545,21 @@ def build(
     # Denmark's answer an artefact of being the only electrified place on
     # the map.
     #
-    # base_twh, not total_twh: TYNDP counts vehicles and electrolysis
-    # outside its demand profiles, and so does this model -- the EV block is
-    # added below and hydrogen is a sector of its own. Adding the base and
-    # then adding them again would count both twice.
-    greenfield.scale_load(n, list(n.loads_t.p_set.columns), column="base_twh")
+    # base_twh and transport_twh (Norway's ferries, shore power, rail and
+    # short-haul flights), not total_twh: TYNDP counts vehicles and
+    # electrolysis outside its demand profiles, and so does this model --
+    # the EV block is added below and hydrogen is a sector of its own.
+    # Adding the total and then adding them again would count both twice.
+    greenfield.scale_load(n, list(n.loads_t.p_set.columns),
+                          column=["base_twh", "transport_twh"])
 
     costs = greenfield.candidate_costs(costs_full, r=r, gas_price=gas_price)
     add_candidates(n, costs, costs_full, r)
+    if BIOMETHANE_DROP_IN:
+        # Any gas turbine may burn biomethane (solve()), so the dedicated
+        # biomethane turbine would be the same machine offered twice.
+        n.remove("Generator", n.generators.index[
+            n.generators.carrier == greenfield.BIOMETHANE_CARRIER])
     greenfield.add_demand_blocks(n, block_zones=list(n.buses.index))
     # The hydrogen sector is a rung ingredient now, not a fixture. Rungs
     # without it are power systems with no industrial hydrogen at all --
@@ -481,8 +570,8 @@ def build(
         add_hydrogen_sector(n, costs_full, r, gas_price)
         if p2x:
             add_p2x(n, costs_full, r)
-    # In every rung, flexible in the last one -- see add_ev().
-    add_ev(n, flexible=ev)
+    # In every scenario; only the charging mode differs -- see add_ev().
+    add_ev(n, ev, hourly)
     if transmission:
         add_transmission(n, r)
 
@@ -490,6 +579,10 @@ def build(
     network_model.apply_ramp_limits(n)
 
     n._co2_budget = co2_budget
+    # solve() prices drop-in biomethane against the gas it replaces.
+    n._gas_price = gas_price
+    n.meta["gas_price"] = gas_price
+    n.meta["ev_mode"] = ev_mode(ev)
     # Reforming burns gas to make hydrogen, so its emissions belong in the
     # budget like any other. It is not one of greenfield's candidates, so its
     # rate is appended here rather than coming from candidate_costs().
@@ -506,9 +599,16 @@ def build(
 def solve(n: pypsa.Network) -> float | None:
     """Optimise under the system-wide CO2 budget and return its dual — the
     carbon price the whole twelve-zone system faces, rather than the price a
-    Danish budget implies."""
+    Danish budget implies. Drop-in biomethane enters here as one variable
+    for the year (see BIOMETHANE_DROP_IN); what the solve buys is kept in
+    n.meta["biomethane_dropin_mwh"], which system_emissions() reads."""
     budget = getattr(n, "_co2_budget", None)
     rates = emission_rates(n, getattr(n, "_emission_rates"))
+    gas_co2 = greenfield.GAS_CO2_T_PER_MWH_TH
+    gas_price = getattr(n, "_gas_price", greenfield.GAS_PRICE)
+    tax = float(n.meta.get("carbon_tax") or 0.0)
+    # Per network, so an experiment can take biomethane away altogether.
+    dropin_on = getattr(n, "_biomethane_dropin", BIOMETHANE_DROP_IN)
 
     def add_constraints(nw, snapshots):
         import xarray as xr
@@ -521,24 +621,45 @@ def solve(n: pypsa.Network) -> float | None:
             coords={"snapshot": nw.snapshots},
         )
 
+        # Drop-in biomethane, zone by zone (greenfield.add_biomethane_dropin).
+        # A plant's fuel per MWh is its CO2 rate over the gas's, which is how
+        # the rate table recovers it (the candidates leave PyPSA's efficiency
+        # at one); the reformers sit on hydrogen buses, which belong to their
+        # zone.
+        dropin = {}
+        gas = [g for g in nw.generators.index
+               if nw.generators.at[g, "carrier"] in GAS_CARRIERS
+               and rates.get(g, 0.0) > 0]
+        if dropin_on and gas:
+            dropin = greenfield.add_biomethane_dropin(
+                m, nw, p, gen_dim, weight,
+                {g: rates[g] / gas_co2 for g in gas}, gas_price,
+                {z: tax for z in nw.buses.index}, zone_of=electrical_zone)
+
         if budget is not None:
             emitters = [g for g in nw.generators.index if rates.get(g, 0.0) > 0]
             rate = xr.DataArray(
                 [rates[g] for g in emitters], coords={gen_dim: emitters},
             )
             expr = (p.sel({gen_dim: emitters}) * weight * rate).sum()
+            for b in dropin.values():
+                expr = expr - gas_co2 * b
             m.add_constraints(expr <= budget, name="co2_budget")
 
-        # The backstop is finite. Without this the model may switch any
-        # number of peakers to biomethane, which is what bounds the carbon
-        # price at the fuel-price gap over the gas plant's emission rate.
-        # With it, that bound holds only while the ceiling is slack -- and
-        # the dual below says whether it is.
+        # The biomethane is finite: one ceiling for all zones on what the
+        # dedicated turbine burns (when there is one) and what is bought as
+        # drop-in fuel together. While it is slack, the fuel switch bounds
+        # the carbon price at the fuel-price gap over the gas's CO2; the dual
+        # below says whether it is.
         biogas = [g for g in nw.generators.index
                   if nw.generators.at[g, "carrier"] == greenfield.BIOMETHANE_CARRIER]
+        fuel = None
         if biogas:
             fuel = ((p.sel({gen_dim: biogas}) * weight).sum()
                     / greenfield.BIOMETHANE_EFFICIENCY)
+        for b in dropin.values():
+            fuel = 1.0 * b if fuel is None else fuel + b
+        if fuel is not None:
             m.add_constraints(fuel <= greenfield.BIOMETHANE_POTENTIAL_MWH,
                               name="biomethane_potential")
 
@@ -557,20 +678,63 @@ def solve(n: pypsa.Network) -> float | None:
             -n.model.constraints["biomethane_potential"].dual)
     except (KeyError, AttributeError):
         n.meta["biomethane_shadow"] = None
+    n.meta["biomethane_dropin_mwh"] = greenfield.read_dropin(n)
     if budget is not None:
         return float(-n.model.constraints["co2_budget"].dual)
     return None
 
 
 def system_emissions(n: pypsa.Network) -> float:
-    """Realised annual CO2 across all twelve zones, tonnes."""
+    """Realised annual CO2 across all twelve zones, tonnes: what the plants
+    emit, less the natural gas that drop-in biomethane replaced."""
     rates = emission_rates(n, getattr(n, "_emission_rates"))
     w = n.snapshot_weightings.objective
     total = 0.0
     for name, rate in rates.items():
         if rate > 0:
             total += float((n.generators_t.p[name] * w).sum()) * rate
-    return total
+    return total - greenfield.GAS_CO2_T_PER_MWH_TH * greenfield.dropin_mwh(n)
+
+
+def biomethane_use(n: pypsa.Network) -> dict:
+    """Biomethane burnt in a year, MWh of fuel: in a dedicated turbine (when
+    there is one) and as drop-in fuel, against the one ceiling, with the
+    ceiling's shadow price."""
+    w = n.snapshot_weightings.objective
+    biogas = n.generators.index[
+        n.generators.carrier == greenfield.BIOMETHANE_CARRIER]
+    dedicated = (float((n.generators_t.p[biogas].sum(axis=1) * w).sum())
+                 / greenfield.BIOMETHANE_EFFICIENCY) if len(biogas) else 0.0
+    dropin = greenfield.dropin_mwh(n)
+    return {
+        "biomethane_dedicated_mwh": dedicated,
+        "biomethane_dropin_mwh": dropin,
+        "biomethane_total_mwh": dedicated + dropin,
+        "biomethane_potential_mwh": greenfield.BIOMETHANE_POTENTIAL_MWH,
+    }
+
+
+def ev_balance(n: pypsa.Network) -> dict:
+    """What the passenger cars drew from the grid and gave back in a year,
+    MWh, and the size of what they made available: zero for the store and
+    the links when the cars charge on arrival."""
+    w = n.snapshot_weightings.objective
+    charger = n.links.index[n.links.carrier == "ev_charger"]
+    v2g = n.links.index[n.links.carrier == "ev_v2g"]
+    store = n.stores.index[n.stores.carrier == "ev_battery"]
+
+    def drawn(links):
+        if not len(links) or "p0" not in n.links_t:
+            return 0.0
+        return float((n.links_t.p0[links].sum(axis=1) * w).sum())
+
+    return {
+        "ev_charged_mwh": drawn(charger),
+        "ev_v2g_out_mwh": drawn(v2g),
+        "ev_store_mwh": float(n.stores.loc[store, "e_nom"].sum()),
+        "ev_charger_mw": float(n.links.loc[charger, "p_nom"].sum()),
+        "ev_v2g_mw": float(n.links.loc[v2g, "p_nom"].sum()),
+    }
 
 
 def electrical_zone(bus: str) -> str:

@@ -24,6 +24,10 @@ extra constraint whose dual is the carbon price that would decentralise the
 plan: section 2's cap, now setting the capacity mix rather than reshuffling
 a fixed one. Section 7 uses it for one scenario, with no price on anyone.
 
+Denmark's candidates are capped at the published potentials every zone
+uses (P_NOM_MAX, below), and the biomethane all zones may burn has one
+ceiling, as in section 8 (solve()).
+
 The neighbours keep the fleets they have and may add to them from the same
 candidate menu, capped at their published potentials, and pay the same
 carbon price: the question the model answers is what Denmark should build,
@@ -113,6 +117,25 @@ def _fuel(carrier: str, field: str) -> float:
 GAS_PRICE = _fuel("gas", "price_used_eur_per_mwh_th")
 GAS_CO2_T_PER_MWH_TH = _fuel("gas", "co2_used_t_per_mwh_th")
 
+# Biomethane as a drop-in fuel (sections 7 and 8; add_biomethane_dropin()).
+#
+# Biomethane is pipeline gas: a gas plant may burn it in place of natural
+# gas, at its own price, and the CO2 of the gas it replaces is not emitted.
+# So each zone may buy B_z MWh of it a year for its gas plants, no more than
+# they burn, and all zones share one ceiling with the dedicated biomethane
+# turbine. Per tonne avoided this costs (p_bio - p_gas) / e_gas whichever
+# plant burns it, section 2's fuel-switching price: a carbon price above it
+# makes the switch, and under a budget it is a plateau in the dual while the
+# ceiling is slack.
+#
+# The new gas turbine is left out here because the dedicated biomethane
+# turbine already is its biomethane twin, and two identical machines would
+# make the split between them arbitrary. Section 8, which has no dedicated
+# turbine, passes its own list (expansion.py).
+BIOMETHANE_DROP_IN = True
+BIOMETHANE_PRICE = _fuel("biomethane", "price_used_eur_per_mwh_th")
+DROPIN_CARRIERS = ("CCGT", "OCGT", "ccgt")
+
 # The reference carbon price, EUR/t: the EU ETS at the level section 2 uses
 # for its carbon-tax experiment (the range of recent allowance prices).
 # build() charges it on every emitter in every zone, existing plant and
@@ -130,12 +153,15 @@ def load_forward_network(nc_path: Path) -> pypsa.Network:
         nc_path, fuels=FORWARD_FUELS, costs=FORWARD_COSTS)
 
 
-def scale_load(n: pypsa.Network, zones, column: str = "base_twh") -> dict:
+def scale_load(n: pypsa.Network, zones, column="base_twh") -> dict:
     """Scale each zone's load so its annual energy is the forward horizon's
-    total, leaving the 2024 shape alone. Must be called after subsample(),
-    because annual energy is the weighted sum. Returns the factors applied,
-    which are worth printing: they are the assumption this replaces.
+    total, leaving the 2024 shape alone. `column` is the DEMAND_TOTALS
+    column that holds the total, or a list of columns that add up to it.
+    Must be called after subsample(), because annual energy is the weighted
+    sum. Returns the factors applied, which are worth printing: they are
+    the assumption this replaces.
     """
+    columns = [column] if isinstance(column, str) else list(column)
     weights = n.snapshot_weightings.objective
     factors = {}
     for zone in zones:
@@ -144,7 +170,7 @@ def scale_load(n: pypsa.Network, zones, column: str = "base_twh") -> dict:
         served = float((n.loads_t.p_set[zone] * weights).sum())
         if served <= 0:
             continue
-        factor = float(DEMAND_TOTALS.loc[zone, column]) * 1e6 / served
+        factor = float(DEMAND_TOTALS.loc[zone, columns].sum()) * 1e6 / served
         n.loads_t.p_set[zone] *= factor
         factors[zone] = factor
     return factors
@@ -193,22 +219,24 @@ NATIVE_PROFILE = {
     "wind_offshore": ["offwind-ac", "offwind-dc", "offwind-float"],
 }
 
-# Buildable potential per zone, MW — the land/NIMBY constraint. Offshore is
-# what makes these bind interesting: when onshore and solar run out, the
-# model must pay offshore's premium. These are the note's own stylised caps
-# for the two greenfield zones; the neighbours build under the published
-# per-zone potentials below, as section 8 does for every zone.
-P_NOM_MAX = {
-    "DK1": {"solar_pv": 10000, "wind_onshore": 5000, "wind_offshore": 20000},
-    "DK2": {"solar_pv": 6000, "wind_onshore": 2500, "wind_offshore": 10000},
-}
-
-# Published buildable potential per zone: the smaller of the most ambitious
-# published trajectory and what the land allows. Written by data/prepare.py,
-# which records both sources beside the used value; see data/README.md.
+# Published buildable potential per zone, MW — the land/NIMBY constraint:
+# the smaller of the most ambitious published trajectory and what the land
+# allows. Written by data/prepare.py, which records both sources beside the
+# used value; see data/README.md.
 POTENTIALS = pd.read_csv(
     PROCESSED_DIR / "potentials_zones.csv", comment="#"
 ).set_index(["zone", "technology"])["p_nom_max_used_mw"]
+
+# The two greenfield zones are capped by the same published potentials as
+# every other zone, here and in section 8, so that the two sections differ
+# by what they add and not by their land. Wiped clean, Denmark has no
+# existing plant to count against them, so each cap is the whole potential.
+# (Until 2026-10-16 these were the note's own stylised round numbers.)
+P_NOM_MAX = {
+    zone: {tech: float(POTENTIALS[(zone, tech)])
+           for tech in ("solar_pv", "wind_onshore", "wind_offshore")}
+    for zone in DK_ZONES
+}
 
 # The existing carriers whose capacity counts against each candidate's cap
 # (the potentials are ceilings on *total* capacity in a zone) and whose
@@ -457,7 +485,7 @@ def build(
     # Denmark is the one that exists plus whatever a 2050 load makes it
     # worth building, at the same carbon price as Denmark. total_twh, not
     # base_twh: this section has no separate EV block, so the vehicles
-    # belong in the load.
+    # belong in the load, with the rest of Norway's electrified transport.
     scale_load(n, list(n.loads_t.p_set.columns), column="total_twh")
 
     if autarky:
@@ -531,40 +559,139 @@ def build(
 
     n._co2_budget = co2_budget
     n._emission_rates = costs["emission_rate"]
+    # solve() prices drop-in biomethane against the gas and the carbon it
+    # replaces, zone by zone.
+    n._gas_price = gas_price
+    n._carbon_price_by_zone = {
+        z: (ets_price or 0.0)
+        + (carbon_tax if carbon_tax is not None and z in DK_ZONES else 0.0)
+        for z in n.buses.index}
     return n
+
+
+def add_biomethane_dropin(m, n, p, gen_dim, weight, fuel_per_mwh: dict,
+                          gas_price: float, carbon_price_by_zone: dict,
+                          zone_of=lambda bus: bus) -> dict:
+    """Drop-in biomethane (see BIOMETHANE_DROP_IN), inside an
+    extra_functionality: one variable per zone, MWh of biomethane a year
+    burnt in place of natural gas by the generators in `fuel_per_mwh` (MWh
+    of fuel per MWh they produce), no more than they burn. Each costs the
+    fuel-price gap less the carbon price it saves. Returns {zone: variable};
+    the caller puts them into its budget and the biomethane ceiling."""
+    import xarray as xr
+
+    by_zone: dict[str, list] = {}
+    for g in fuel_per_mwh:
+        by_zone.setdefault(zone_of(n.generators.at[g, "bus"]), []).append(g)
+    out, cost = {}, None
+    for zone, gens in sorted(by_zone.items()):
+        b = m.add_variables(lower=0.0, name=f"biomethane_dropin_{zone}")
+        per = xr.DataArray([fuel_per_mwh[g] for g in gens], coords={gen_dim: gens})
+        burnt = (p.sel({gen_dim: gens}) * weight * per).sum()
+        m.add_constraints(b - burnt <= 0, name=f"biomethane_dropin_gas_{zone}")
+        premium = (BIOMETHANE_PRICE - gas_price
+                   - carbon_price_by_zone.get(zone, 0.0) * GAS_CO2_T_PER_MWH_TH)
+        cost = premium * b if cost is None else cost + premium * b
+        out[zone] = b
+    if cost is not None:
+        m.objective = m.objective.expression + cost
+    return out
+
+
+def read_dropin(n: pypsa.Network) -> dict:
+    """What a solve bought of drop-in biomethane, {zone: MWh a year}. Also
+    records the CO2 it saves per MWh, so that a reader of the solved network
+    (the Lab's extraction) can net it out zone by zone without importing the
+    model."""
+    n.meta["biomethane_dropin_co2_t_per_mwh"] = GAS_CO2_T_PER_MWH_TH
+    out = {}
+    for name in n.model.variables:
+        if str(name).startswith("biomethane_dropin_"):
+            out[str(name)[len("biomethane_dropin_"):]] = float(
+                n.model.variables[name].solution)
+    return out
+
+
+def dropin_mwh(n: pypsa.Network, zones=None) -> float:
+    """Drop-in biomethane a solved (or cached) network bought in a year,
+    MWh, in `zones` (default: all)."""
+    bought = n.meta.get("biomethane_dropin_mwh") or {}
+    if not isinstance(bought, dict):        # one pool, before the split by zone
+        return float(bought) if zones is None else 0.0
+    return sum(float(v) for z, v in bought.items() if zones is None or z in zones)
 
 
 def solve(n: pypsa.Network) -> float | None:
     """Optimise; if a CO2 budget was set, add it as an explicit constraint
-    and return its dual — the endogenous carbon price (EUR/t)."""
+    and return its dual — the endogenous carbon price (EUR/t). Gas plants
+    may burn drop-in biomethane (add_biomethane_dropin()); what each zone
+    bought is kept in n.meta["biomethane_dropin_mwh"]. The biomethane all
+    zones may burn is capped as in section 8, and the cap's shadow price is
+    kept in n.meta["biomethane_shadow"]."""
     budget = getattr(n, "_co2_budget", None)
     rates = getattr(n, "_emission_rates", None)
+    dropin_on = getattr(n, "_biomethane_dropin", BIOMETHANE_DROP_IN)
+    gas_price = getattr(n, "_gas_price", GAS_PRICE)
+    carbon_price = getattr(n, "_carbon_price_by_zone", {})
+    network_rates = network_model.emission_rates(n)
 
-    def add_co2(nw, snapshots):
+    def add_constraints(nw, snapshots):
         import xarray as xr
 
         m = nw.model
         p = m.variables["Generator-p"]
         gen_dim = next(d for d in p.dims if d != "snapshot")
-        emitters = [
-            g for g, row in nw.generators.iterrows()
-            if row.bus in DK_ZONES and row.carrier in rates.index
-            and rates[row.carrier] > 0
-        ]
         weight = xr.DataArray(
             nw.snapshot_weightings.objective.to_numpy(),
             coords={"snapshot": nw.snapshots},
         )
-        rate = xr.DataArray(
-            [rates[nw.generators.loc[g, "carrier"]] for g in emitters],
-            coords={gen_dim: emitters},
-        )
-        expr = (p.sel({gen_dim: emitters}) * weight * rate).sum()
-        m.add_constraints(expr <= budget, name="co2_budget")
+        # Gas burnt per MWh: a candidate's CO2 rate (its own table) or an
+        # existing plant's (the network's), over the gas's.
+        dropin = {}
+        if dropin_on:
+            fuel = {}
+            for g, row in nw.generators.iterrows():
+                if row.carrier not in DROPIN_CARRIERS:
+                    continue
+                rate = (float(rates[row.carrier])
+                        if row.p_nom_extendable and row.carrier in rates.index
+                        else float(network_rates.get(g, 0.0)))
+                if rate > 0:
+                    fuel[g] = rate / GAS_CO2_T_PER_MWH_TH
+            dropin = add_biomethane_dropin(m, nw, p, gen_dim, weight, fuel,
+                                           gas_price, carbon_price)
+        if budget is not None:
+            emitters = [
+                g for g, row in nw.generators.iterrows()
+                if row.bus in DK_ZONES and row.carrier in rates.index
+                and rates[row.carrier] > 0
+            ]
+            rate = xr.DataArray(
+                [rates[nw.generators.loc[g, "carrier"]] for g in emitters],
+                coords={gen_dim: emitters},
+            )
+            expr = (p.sel({gen_dim: emitters}) * weight * rate).sum()
+            for zone, b in dropin.items():
+                if zone in DK_ZONES:
+                    expr = expr - GAS_CO2_T_PER_MWH_TH * b
+            m.add_constraints(expr <= budget, name="co2_budget")
+        # The backstop is finite, as in section 8 (expansion.solve): one
+        # ceiling on the biomethane burnt in all zones together, by the
+        # dedicated turbine and as drop-in fuel. While it is slack, the fuel
+        # switch caps what a tonne can cost; the shadow price below says
+        # whether that holds.
+        biogas = [g for g in nw.generators.index
+                  if nw.generators.at[g, "carrier"] == BIOMETHANE_CARRIER]
+        fuel_total = None
+        if biogas:
+            fuel_total = ((p.sel({gen_dim: biogas}) * weight).sum()
+                          / BIOMETHANE_EFFICIENCY)
+        for b in dropin.values():
+            fuel_total = 1.0 * b if fuel_total is None else fuel_total + b
+        if fuel_total is not None:
+            m.add_constraints(fuel_total <= BIOMETHANE_POTENTIAL_MWH,
+                              name="biomethane_potential")
 
-    kwargs = {}
-    if budget is not None:
-        kwargs["extra_functionality"] = add_co2
     # Interior point with crossover: on instances of this size and cost
     # range (0.1 to 23,400 EUR/MWh once the VoLL block is in) HiGHS's
     # simplex grinds for hours where IPM finishes in minutes; crossover
@@ -574,24 +701,32 @@ def solve(n: pypsa.Network) -> float | None:
     status, condition = n.optimize(
         solver_name=network_model.SOLVER, progress=False,
         transmission_losses=network_model.TRANSMISSION_LOSSES_SEGMENTS,
-        solver_options=network_model.solver_options(ipm=True), **kwargs,
+        solver_options=network_model.solver_options(ipm=True),
+        extra_functionality=add_constraints,
     )
     if status != "ok":
         raise RuntimeError(f"greenfield LP did not solve: {status} / {condition}")
+    try:
+        n.meta["biomethane_shadow"] = float(
+            -n.model.constraints["biomethane_potential"].dual)
+    except (KeyError, AttributeError):
+        n.meta["biomethane_shadow"] = None
+    n.meta["biomethane_dropin_mwh"] = read_dropin(n)
     if budget is not None:
         return float(-n.model.constraints["co2_budget"].dual)
     return None
 
 
 def dk_emissions(n: pypsa.Network) -> float:
-    """Realised annual CO2 of the Danish candidate fleet, tonnes."""
+    """Realised annual CO2 of the Danish candidate fleet, tonnes, less the
+    gas that Danish drop-in biomethane replaced."""
     rates = getattr(n, "_emission_rates")
     w = n.snapshot_weightings.objective
     total = 0.0
     for g, row in n.generators.iterrows():
         if row.bus in DK_ZONES and row.carrier in rates.index and rates[row.carrier] > 0:
             total += float((n.generators_t.p[g] * w).sum()) * rates[row.carrier]
-    return total
+    return total - GAS_CO2_T_PER_MWH_TH * dropin_mwh(n, DK_ZONES)
 
 
 def dk_capacity(n: pypsa.Network) -> pd.Series:
@@ -613,7 +748,8 @@ def total_emissions(n: pypsa.Network) -> float:
     The CO2 budget covers Danish generation only while imports are free, so
     part of a Danish "cut" can simply move abroad. This is the number that
     shows how much: the neighbours' fleets on the network's (re-priced)
-    emission factors plus the Danish candidates on their own.
+    emission factors plus the Danish candidates on their own, less the gas
+    that drop-in biomethane replaced.
     """
     rates_dk = getattr(n, "_emission_rates")
     net_rates = network_model.emission_rates(n)
@@ -626,7 +762,7 @@ def total_emissions(n: pypsa.Network) -> float:
             rate = float(net_rates[g])
         if rate > 0:
             total += float((n.generators_t.p[g] * w).sum()) * rate
-    return total
+    return total - GAS_CO2_T_PER_MWH_TH * dropin_mwh(n)
 
 
 def shed_energy(n: pypsa.Network) -> pd.Series:
