@@ -1739,7 +1739,7 @@ def fig_network_expansion(d):
     ax.annotate("system cost saving vs no cables",
                 xy=(gw.iloc[5], e["cost_saving_eur"].iloc[5] / 1e6),
                 xytext=(6, -14), textcoords="offset points", fontsize=8, color=BLUE)
-    ax.annotate("congestion rent on the corridor",
+    ax.annotate("congestion rent on the interconnector",
                 xy=(gw.iloc[5], e["corridor_rent_eur"].iloc[5] / 1e6),
                 xytext=(6, 8), textcoords="offset points", fontsize=8,
                 color=VERMILLION)
@@ -1861,7 +1861,7 @@ def fig_network_topology(d):
     handles = [
         Patch(facecolor=AREA_FILL["Continental Europe"], label="Continental synchronous area"),
         Patch(facecolor=AREA_FILL["Nordic"], label="Nordic synchronous area"),
-        Line2D([0], [0], color=INK, linewidth=1.5, label="AC corridor"),
+        Line2D([0], [0], color=INK, linewidth=1.5, label="AC interconnector"),
         Line2D([0], [0], color=BLUE, linewidth=1.5, linestyle=(0, (3, 2)), label="DC cable"),
     ]
     ax.legend(handles=handles, loc="upper left", frameon=False, fontsize=7)
@@ -1911,8 +1911,8 @@ def fig_network_distribution(d):
     and for a doubling. The bars fill both panels top to bottom, so the
     legend sits below them."""
     fig, axes = plt.subplots(1, 2, figsize=(6.1, 3.6))
-    titles = {"Built": "(a) the corridor as built, against none",
-              "Double": "(b) a second corridor of the same size"}
+    titles = {"Built": "(a) the interconnector as built, against none",
+              "Double": "(b) a second interconnector of the same size"}
     colors = {"consumers": BLUE, "producers": VERMILLION, "rent": "#999999"}
     labels = {"consumers": "consumers", "producers": "producers",
               "rent": "cable owners (rent)"}
@@ -3331,7 +3331,7 @@ def fig_expansion_ladder(d):
     # Panel titles as in every other two-panel figure: the caption reads
     # the panels as (a) and (b).
     for ax, ylabel, title in zip(axes,
-                                 ["carbon price σ (€/t)", "system cost (bn€ / year)"],
+                                 ["carbon tax τ (€/t)", "system cost (bn€ / year)"],
                                  ["(a) the carbon price", "(b) the annual system cost"]):
         ax.set_xticks(list(x), labels, fontsize=8)
         ax.set_xlabel("cut in CO$_2$ emissions")
@@ -3456,7 +3456,7 @@ def fig_expansion_baseline(d):
     for i, key in enumerate(keys):
         sigma = row.at[key, "co2_price_eur_t"]
         if pd.notna(sigma):
-            ax.annotate(f"σ = {sigma:.0f}", xy=(i, bottom[i]), xytext=(0, 3),
+            ax.annotate(f"τ = {sigma:.0f}", xy=(i, bottom[i]), xytext=(0, 3),
                         textcoords="offset points", ha="center", fontsize=7.5, color=INK)
     ax.set_ylim(0, bottom.max() * 1.12)
     ax.set_ylabel("new capacity (GW)")
@@ -3527,7 +3527,7 @@ def fig_expansion_prices(d):
     fig, ax = plt.subplots(figsize=(6.4, 3.6))
     for key, label, color in zip(keys, labels, ["#9e9e9e", BLUE, VERMILLION]):
         sigma = row.at[key, "co2_price_eur_t"]
-        name = label + ("" if pd.isna(sigma) else f" (σ = {sigma:.0f} €/t)")
+        name = label + ("" if pd.isna(sigma) else f" (τ = {sigma:.0f} €/t)")
         ax.plot(share, duration[f"basic|{key}"], color=color, linewidth=1.5, label=name)
     top = PRICES_CUTOFF
     peak = duration[[f"basic|{k}" for k in keys]].max().max()
@@ -3623,7 +3623,7 @@ def fig_expansion_hydrogen(d):
     for i, key in enumerate(keys):
         sigma = row.at[key, "co2_price_eur_t"]
         if pd.notna(sigma):
-            axes[0].annotate(f"σ = {sigma:.0f}", xy=(i, bottom[i]), xytext=(0, 3),
+            axes[0].annotate(f"τ = {sigma:.0f}", xy=(i, bottom[i]), xytext=(0, 3),
                              textcoords="offset points", ha="center", fontsize=7.5,
                              color=INK)
     axes[0].set_xticks(xs, ["none"] + labels[1:], fontsize=8)
