@@ -34,15 +34,16 @@ Currently prepares:
     processed/weather_zones_{2015..2024}.csv  + weather_zones.json
         per-unit wind and solar availability for all twelve bidding zones on
         one consistent weather year, from Open-Meteo's ERA5 archive (CC-BY
-        4.0, no key) — what section 8's sweep re-solves over
+        4.0, no key) — what section 9's sweep re-solves over
     processed/temperature_dk_2024.csv
         hourly 2m temperature for Aarhus (section 5's heat pump COP) from
         the Open-Meteo historical archive (CC-BY 4.0, no key)
     processed/technology_costs_full_{2025..2050}.csv
         the note's subset of PyPSA/technology-data, one file per cost
         projection vintage, FETCHED AT A PINNED TAG and reshaped; never
-        vendored from this repository in raw form. 2030 is section 7's
-        reference; section 8 sweeps the rest
+        vendored from this repository in raw form. Sections 7-9 price
+        investment on 2050; section 9's two cost scenarios are built from
+        the fall between 2025 and 2050
     processed/spot_2024.csv
         actual day-ahead prices per bidding zone (Elspotprices: DK1, DK2,
         DE, NO2, SE3, SE4) — the real-world counterparts the note holds its
@@ -104,8 +105,8 @@ PROCESSED = NOTE / "data" / "processed"
 
 EDS_API = "https://api.energidataservice.dk/dataset"
 
-# The note's reference year (2024, a leap year: 8784 hours), and the weather
-# years of section 8's sweep.
+# The note's reference year (2024, a leap year: 8784 hours), and the years of
+# Danish settlement profiles fetched beside it.
 YEAR = 2024
 WEATHER_YEARS = [2019, 2020, 2021, 2022, 2023, 2024]
 
@@ -114,11 +115,11 @@ WEATHER_YEARS = [2019, 2020, 2021, 2022, 2023, 2024]
 TECHNOLOGY_DATA_TAG = "v0.13.2"
 TECHNOLOGY_DATA_YEAR = 2030
 
-# The cost vintages section 8 sweeps. These are *projections* of what a
-# technology will cost in a given year, not draws from a distribution, and the
-# note is careful to say so — but the spread between the earliest and the
-# latest is a fair picture of how much the answer depends on the cost
-# assumptions rather than on the energy system.
+# The cost vintages fetched. These are *projections* of what a technology
+# will cost in a given year, not draws from a distribution, and the note is
+# careful to say so. Section 4 prices its battery on 2030, sections 7-9 price
+# investment on 2050, and section 9 builds its two cost scenarios from the
+# fall between 2025 and 2050 (prepare_cost_scenarios).
 COST_YEARS = [2025, 2030, 2035, 2040, 2045, 2050]
 
 
@@ -350,7 +351,7 @@ def prepare_temperature():
     print(f"wrote {out_csv.relative_to(NOTE)} ({len(df)} hours)")
 
 
-# --- Zonal weather for section 8's sweep -----------------------------------
+# --- Zonal weather for section 9's sweep -----------------------------------
 # The decade the sweep runs over. Open-Meteo's ERA5 archive reaches back to
 # 1940, so this is a choice about how many greenfield solves we want, not a
 # data limit.
@@ -449,7 +450,7 @@ def prepare_zone_weather():
     """Per-unit wind and solar availability for all twelve bidding zones, one
     file per year, on a single consistent weather year across the whole map.
 
-    This is what section 8's sweep needs and what the Danish-only EDS profiles
+    This is what section 9's sweep needs and what the Danish-only EDS profiles
     could never give: when the sweep asks what a 2021 system looks like, every
     zone gets 2021 weather, so a Danish calm spell is matched by whatever
     Germany and Norway were doing at the same hour. Getting that correlation
@@ -696,10 +697,8 @@ def prepare_costs_full(cost_year: int = None) -> dict:
     (the BNEF cap above); the returned record row goes to
     battery_assumptions.csv.
 
-    `cost_year` selects the projection vintage. 2030 is the note's reference
-    and what section 7 solves on; section 8 sweeps the rest to ask how much of
-    a capacity expansion answer is a statement about technology costs rather
-    than about the energy system.
+    `cost_year` selects the projection vintage; COST_YEARS above says which
+    section reads which.
     """
     cost_year = TECHNOLOGY_DATA_YEAR if cost_year is None else cost_year
     raw_file = RAW / "technology-data" / f"costs_{cost_year}_{TECHNOLOGY_DATA_TAG}.csv"
@@ -723,7 +722,7 @@ def prepare_costs_full(cost_year: int = None) -> dict:
         "battery inverter", "battery storage",
         "central air-sourced heat pump", "central gas boiler",
         "coal", "lignite", "nuclear", "gas", "oil", "solid biomass",
-        # The hydrogen chain of section 9. `electrolysis` and `fuel cell`
+        # The hydrogen chain of section 8. `electrolysis` and `fuel cell`
         # are the machines; the two storage rows are the decision that
         # matters -- a cavern is a factor of twenty cheaper per kWh than a
         # tank, and only some of the twelve zones have salt geology
@@ -733,7 +732,7 @@ def prepare_costs_full(cost_year: int = None) -> dict:
         "hydrogen storage underground",
         "hydrogen storage tank type 1 including compressor",
         # Reforming: the incumbent way to make hydrogen, and the alternative
-        # section 9's every rung has to the electrolytic route.
+        # to the electrolytic route in section 8's hydrogen scenario.
         "H2 production natural gas steam reforming",
     ]
     keep_params = ["investment", "lifetime", "FOM", "VOM", "efficiency", "fuel", "CO2 intensity"]
@@ -847,10 +846,11 @@ def prepare_fuels():
 # the same efficiency and the same variable operating cost.
 # The small table reports TODAY's plants, so it uses the 2025 vintage -- the
 # same one the technologies note's catalogue reports, which is what makes the
-# two tables identical rather than merely similar. Sections 7-8 keep the 2030
-# vintage, because they are asking what it costs to BUILD for 2030, and
-# section 8's sweep is about exactly that. run_greenfield's costs_check()
-# surfaces the residual difference, which is under 2% on efficiency.
+# two tables identical rather than merely similar. Sections 7-9 read the 2050
+# vintage, because they are asking what it costs to BUILD for 2050, and
+# section 9's cost scenarios vary exactly that. run_greenfield's costs_check()
+# surfaces the residual difference: the 2050 gas turbines are a few per cent
+# more efficient.
 SMALL_TABLE_YEAR = 2025
 
 SMALL_TABLE = {
@@ -1194,7 +1194,7 @@ def _technical_potentials() -> dict:
 
 
 def prepare_potentials():
-    """Write the per-zone buildable potentials of section 9."""
+    """Write the per-zone buildable potentials of sections 7-9."""
     try:
         import openpyxl  # noqa: F401
     except ImportError:
@@ -1773,7 +1773,7 @@ def prepare_ev_fleet():
 # ---------------------------------------------------------------------------
 # Hydrogen imports: the third way a zone can meet its hydrogen demand.
 #
-# Leaving imports out would decide section 9's answer before it was asked --
+# Leaving imports out would decide section 8's answer before it was asked --
 # with only reforming and electrolysis available, a tight carbon budget
 # forces electrolysis whatever it costs. Putting them in *without a limit*
 # decides it the other way, and just as artificially: a world that will sell
@@ -1870,11 +1870,11 @@ def prepare_h2_imports():
     return table
 
 # ---------------------------------------------------------------------------
-# Industrial hydrogen demand, for the hydrogen sector of section 9.
+# Industrial hydrogen demand, for the hydrogen sector of section 8.
 #
-# Section 9 gives every rung a hydrogen demand and every rung a way to meet
-# it, so that what rung (ii) adds is the *electrolytic route* rather than the
-# demand itself. This is where the demand comes from.
+# Section 8's hydrogen scenario adds a hydrogen market to every zone with a
+# demand, and four routes to supply it: reformers, imports, electrolysers and
+# storage. This is where the demand comes from.
 #
 # Source: ENTSO-E/ENTSOG TYNDP 2024 Scenarios, "Demand Profiles", the
 # hydrogen demand workbook for the Distributed Energy scenario at 2040,

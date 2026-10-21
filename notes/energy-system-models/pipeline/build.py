@@ -205,7 +205,6 @@ def load_results():
     if (RESULTS / "weather_summary.json").exists():
         results["weather"] = {
             "mix": pd.read_csv(RESULTS / "weather_mix.csv", index_col="year"),
-            "price_duration": pd.read_csv(RESULTS / "weather_price_duration.csv", index_col="pct_of_hours"),
             "summary": json.loads((RESULTS / "weather_summary.json").read_text(encoding="utf-8")),
         }
     if (RESULTS / "costs_summary.json").exists():
@@ -236,15 +235,16 @@ def load_results():
                     json.loads((RESULTS / "expansion_resolution_check_ev_v2g.json").read_text(encoding="utf-8"))
                     if (RESULTS / "expansion_resolution_check_ev_v2g.json").exists() else None
                 ),
-                # The figures' tables: generation by source, the German
-                # price duration curves and who sets each price level, the
-                # two EV weeks and the German hydrogen by month, written by
-                # run_expansion.py from the ladder's solves.
+                # The figures' tables, all of the whole system: generation
+                # by source, the price duration curves and what sets the
+                # price, what covers the scarcest hours, what a marginal
+                # storage facility earns and the hydrogen by month, written
+                # by run_expansion.py from the ladder's solves.
                 **{key: (pd.read_csv(RESULTS / f"expansion_{key}.csv", **kw)
                          if (RESULTS / f"expansion_{key}.csv").exists() else None)
                    for key, kw in [("generation", {}), ("price_duration", {}),
-                                   ("price_setters", {}),
-                                   ("ev_weeks", {"parse_dates": ["hour"]}),
+                                   ("price_setters", {}), ("scarce_hours", {}),
+                                   ("marginal_storage", {}),
                                    ("hydrogen_months", {"index_col": "month"})]},
             }
     return results
@@ -2949,100 +2949,96 @@ def values_greenfield(d):
 # Section 9 — uncertainty
 # --------------------------------------------------------------------------
 
-def fig_weather_mix(d):
-    """Figure 9.1: the optimal mix, re-solved per weather year."""
-    mix = d["mix"]
-    fig, ax = plt.subplots(figsize=(6.1, 3.9))
-    top = _stacked_mix(ax, mix)
-    ax.legend(frameon=False, fontsize=8, ncol=3, loc="upper left")
-    ax.set_ylim(0, top.max() * 1.25)
-    ax.set_xlabel("weather year")
-    fig.savefig(FIGURES / "weather_mix.pdf")
-    plt.close(fig)
+# The middle cost scenario is the very cost table sections 7 and 9 solve on,
+# so the reference line of the variability figure is the reference system
+# itself: the reference year of the weather sweep and the middle point of
+# the cost sweep.
+COSTS_REFERENCE_SCENARIO = "baseline"
+
+# The outputs the variability figure sets side by side, each in its own unit:
+# label, results column, divisor, unit. Onshore wind is left out because it
+# sits at its potential in every run, which the text says.
+VARIABILITY_PANELS = [
+    ("solar", "cap_solar_pv_mw", 1e3, "GW"),
+    ("offshore wind", "cap_wind_offshore_mw", 1e3, "GW"),
+    ("batteries", "cap_battery_mw", 1e3, "GW"),
+    ("gas turbines", "cap_peaker_mw", 1e3, "GW"),
+    ("Danish bill", "dk_net_cost", 1e9, "bn€/yr"),
+    ("Danish emissions", "emissions_t", 1e6, "Mt"),
+]
+COST_MARKERS = {"pessimistic": ("v", "pess."), "optimistic": ("^", "opt.")}
 
 
-def fig_weather_cost(d):
-    """Figure (fig:uncertainty:cost): the Danish bill and Danish emissions by
-    weather year.
+def fig_uncertainty_variability(weather, costs):
+    """Figure (fig:uncertainty:variability): six outputs of the section 7
+    model across the weather years, beside the same outputs across the cost
+    scenarios.
 
-    The bill, not the solver's objective: eleven of the twelve zones are
-    fixed in this section, and dividing a Danish movement by a European
-    total flattens the panel into a straight line. Years are written with
-    two digits, as in the tax-versus-cap figure: ten four-digit labels do
-    not fit under a half-width panel."""
-    mix = d["mix"]
-    x = range(len(mix))
-    years = [str(y)[2:] for y in mix.index]
-    fig, axes = plt.subplots(1, 2, figsize=(6.1, 3.0))
-    axes[0].bar(x, mix["dk_system_cost"] / 1e9, color=BLOCK_FILL,
-                edgecolor="white", width=0.6)
-    axes[0].set_xticks(list(x), years, fontsize=8)
-    axes[0].set_xlabel("weather year")
-    axes[0].grid(axis="y")
-    axes[0].set_ylabel("Danish system cost (bn € / yr)")
-    axes[0].set_title("(a) the Danish bill", loc="left", fontsize=9, color=INK)
-    low = (mix["dk_system_cost"] / 1e9).min()
-    axes[0].set_ylim(low * 0.9, None)
-
-    axes[1].plot(x, mix["emissions_t"] / 1e6, color=VERMILLION, linewidth=1.6,
-                 marker="o", markersize=5)
-    axes[1].set_xticks(list(x), years, fontsize=8)
-    axes[1].set_xlabel("weather year")
-    axes[1].grid(axis="y")
-    axes[1].set_ylim(bottom=0)
-    axes[1].set_ylabel("Danish emissions (Mt)")
-    axes[1].set_title("(b) emissions at the fixed price", loc="left",
-                      fontsize=9, color=INK)
-    fig.savefig(FIGURES / "weather_cost.pdf")
-    plt.close(fig)
-
-
-def fig_weather_pdc(d):
-    """Figure (fig:uncertainty:pdc): DK1 price duration curves across weather
-    years, one shade per year from light (first) to dark (last), drawn from
-    a ramp so that every year in the results is plotted, however many."""
-    duration = d["price_duration"]
-    ramp = plt.get_cmap("Blues")
-    n = len(duration.columns)
-    shades = [ramp(0.35 + 0.6 * i / max(n - 1, 1)) for i in range(n)]
-    fig, ax = plt.subplots(figsize=(6.1, 3.6))
-    for color, year in zip(shades, duration.columns):
-        ax.plot(duration.index, duration[year], color=color, linewidth=1.4,
-                label=year)
-    # The tail spikes reach thousands of €/MWh in a fleet that must recover
-    # its capital in a few scarcity hours; cap the axis so the body of the
-    # distribution stays readable, and say what was cut.
-    ax.set_ylim(0, 400)
-    ax.annotate(
-        f"scarcity peaks reach {duration.max().max():,.0f} €/MWh (cut off)",
-        xy=(2, 392), fontsize=8, color=INK, va="top",
-    )
-    ax.legend(frameon=False, fontsize=8, ncol=5, title="weather year",
-              title_fontsize=8, loc="center right")
-    ax.set_xlim(0, 100)
-    ax.grid(axis="y")
-    ax.set_xlabel("share of hours (%)")
-    ax.set_ylabel("DK1 price (€/MWh)")
-    fig.savefig(FIGURES / "weather_price_duration.pdf")
-    plt.close(fig)
-
-
-def fig_weather_foresight(d_storage):
-    """Figure 9.6: what perfect foresight is worth to the battery — system
-    cost under the two operators."""
-    f = d_storage["summary"]["foresight"]
-    values = [f["system_cost_perfect_foresight"] / 1e6, f["system_cost_myopic"] / 1e6]
-    fig, ax = plt.subplots(figsize=(4.6, 3.0))
-    ax.bar([0, 1], values, color=[BLUE, "#bbbbbb"], edgecolor="white", width=0.55)
-    ax.set_xticks([0, 1], ["perfect foresight", "day-ahead myopia"])
-    ax.set_ylim(min(values) * 0.995, max(values) * 1.003)
-    delta = f["value_of_foresight"] / 1e6
-    ax.annotate(f"foresight worth {delta:.1f} M€/yr",
-                xy=(0.5, max(values)), xytext=(0, 8), textcoords="offset points",
-                ha="center", fontsize=8, color=INK)
-    ax.grid(axis="y")
-    ax.set_ylabel("system cost (M€ / yr)")
-    fig.savefig(FIGURES / "weather_foresight.pdf")
+    One small panel per output, each in its own unit, because gigawatts,
+    billions of euros and megatonnes share no axis. Put on one axis as
+    shares of the reference system, an output the reference holds little of
+    (the turbines, the emissions) runs to several hundred per cent and
+    flattens every other range. Each panel has two strips: a dot per weather
+    year, spread a little in year order so that years with the same value
+    stay countable, and a marker per cost scenario. The Danish bill is net
+    of trade, the measure section 7 compares systems by."""
+    w_mix, c_mix = weather["mix"], costs["mix"]
+    fig, axes = plt.subplots(2, 3, figsize=(6.3, 4.3))
+    for k, (ax, (name, col, scale, unit)) in enumerate(
+            zip(axes.flat, VARIABILITY_PANELS)):
+        w = w_mix[col] / scale
+        c = c_mix[col] / scale
+        top = max(w.max(), c.max())
+        ax.axhline(c[COSTS_REFERENCE_SCENARIO], color="#888888", lw=0.8,
+                   ls=(0, (4, 3)), zorder=1)
+        # The weather years: the range, and a dot per year.
+        xs = [-0.16 + 0.32 * i / max(len(w) - 1, 1) for i in range(len(w))]
+        ax.plot([0, 0], [w.min(), w.max()], color=BLUE, lw=6, alpha=0.18,
+                solid_capstyle="butt", zorder=2)
+        ax.scatter(xs, w.to_numpy(), s=14, color=BLUE, alpha=0.85,
+                   edgecolor="white", linewidth=0.4, zorder=3, clip_on=False)
+        # The year at each end of the range, in a column left of the dots,
+        # where one year alone holds it and the range is wide enough for the
+        # two labels to stand apart. The text names the top year.
+        if w.max() - w.min() > 0.12 * top:
+            for year in (w.idxmax(), w.idxmin()):
+                if (w == w[year]).sum() == 1:
+                    ax.annotate(f"{year}", xy=(-0.2, w[year]), ha="right",
+                                va="center", fontsize=6.5, color="#666666")
+        # The cost scenarios: the range, and a marker per scenario.
+        ax.plot([1, 1], [c.min(), c.max()], color=VERMILLION, lw=6,
+                alpha=0.18, solid_capstyle="butt", zorder=2)
+        for scenario, value in c.items():
+            marker, label = COST_MARKERS.get(scenario, ("o", None))
+            ax.scatter([1], [value], s=26, marker=marker, color=VERMILLION,
+                       edgecolor="white", linewidth=0.4, zorder=3,
+                       clip_on=False)
+            if label:
+                ax.annotate(label, xy=(1, value), xytext=(6, 0),
+                            textcoords="offset points", va="center",
+                            fontsize=7, color=VERMILLION)
+        ax.set_ylim(0, top * 1.15 if top > 0 else 1.0)
+        ax.set_xlim(-0.75, 1.6)
+        ax.set_xticks([0, 1], ["weather\nyears", "cost\nscenarios"],
+                      fontsize=7.5)
+        ax.tick_params(axis="x", length=0)
+        ax.grid(axis="y")
+        ax.set_title(f"({'abcdef'[k]}) {name} ({unit})", loc="left",
+                     fontsize=8.5, color=INK)
+    handles = [
+        plt.Line2D([], [], ls="none", marker="o", color=BLUE, ms=4.5,
+                   label=f"one weather year, {w_mix.index.min()}–"
+                         f"{w_mix.index.max()}"),
+        plt.Line2D([], [], ls="none", marker="v", color=VERMILLION, ms=5,
+                   label="pessimistic costs"),
+        plt.Line2D([], [], ls="none", marker="^", color=VERMILLION, ms=5,
+                   label="optimistic costs"),
+        plt.Line2D([], [], color="#888888", lw=0.8, ls=(0, (4, 3)),
+                   label="the reference system"),
+    ]
+    fig.legend(handles=handles, loc="outside lower center", ncol=4,
+               frameon=False, fontsize=7.5)
+    fig.savefig(FIGURES / "uncertainty_variability.pdf")
     plt.close(fig)
 
 
@@ -3055,130 +3051,31 @@ def spread_pct(series):
 def values_weather(d):
     s = d["summary"]
     mix = d["mix"]
-    off = mix["cap_wind_offshore_mw"] / 1000.0
     macros = {
         "WeatherYearsCount": f"{len(s['years'])}",
         "WeatherFirstYear": f"{s['years'][0]}",
         "WeatherReferenceYear": f"{s.get('reference_year', 2024)}",
         "WeatherLastYear": f"{s['years'][-1]}",
-        "WeatherCostSpreadPct": f"{s['cost_spread_pct']:.1f}",
-        # The same spread on the bill net of trade, the measure section 7
-        # compares systems by: the gross bill counts capacity built for
-        # export as a Danish cost and leaves out what the exports earn.
+        # On the bill net of trade, the measure section 7 compares systems
+        # by: the gross bill counts capacity built for export as a Danish
+        # cost and leaves out what the exports earn.
         "WeatherNetCostSpreadPct": f"{spread_pct(mix['dk_net_cost']):.1f}",
-        "WeatherNetCostMinBn": f"{mix['dk_net_cost'].min() / 1e9:.2f}",
-        "WeatherNetCostMaxBn": f"{mix['dk_net_cost'].max() / 1e9:.2f}",
-        "WeatherOffshoreMinGW": f"{off.min():.1f}",
-        "WeatherOffshoreMaxGW": f"{off.max():.1f}",
         "WeatherSolarMinGW": f"{mix['cap_solar_pv_mw'].min() / 1000:.1f}",
         "WeatherSolarMaxGW": f"{mix['cap_solar_pv_mw'].max() / 1000:.1f}",
-        "WeatherOnshoreMinGW": f"{mix['cap_wind_onshore_mw'].min() / 1000:.1f}",
-        "WeatherOnshoreMaxGW": f"{mix['cap_wind_onshore_mw'].max() / 1000:.1f}",
-        "WeatherBatteryMinGW": f"{mix['cap_battery_mw'].min() / 1000:.1f}",
-        "WeatherBatteryMaxGW": f"{mix['cap_battery_mw'].max() / 1000:.1f}",
-        "WeatherCarbonPrice": f"{s.get('carbon_price', 0):.0f}",
-        "WeatherEmissionsMinMt": f"{mix['emissions_t'].min() / 1e6:.2f}",
-        "WeatherEmissionsMaxMt": f"{mix['emissions_t'].max() / 1e6:.2f}",
-        "WeatherPeakerMinGW": f"{mix['cap_peaker_mw'].min() / 1000:.1f}",
         "WeatherPeakerMaxGW": f"{mix['cap_peaker_mw'].max() / 1000:.1f}",
+        "WeatherEmissionsMaxMt": f"{mix['emissions_t'].max() / 1e6:.2f}",
+        # The years at the top of the turbines' and the emissions' ranges,
+        # which the variability figure labels and the text names.
+        "WeatherPeakerMaxYear": f"{mix['cap_peaker_mw'].idxmax()}",
+        "WeatherEmissionsMaxYear": f"{mix['emissions_t'].idxmax()}",
     }
     _write_values("weather_values.tex", macros, "results/weather_summary.json")
 
 
-def fig_costs_uncertainty(d, weather=None):
-    """Figure 9.4: the same question asked of technology costs, and the two
-    uncertainties put side by side.
-
-    (a) the optimal mix in each cost scenario; (b) how far each output moves
-    across weather years against how far it moves across cost scenarios,
-    every range normalised to the reference system so the panel can hold
-    gigawatts and euros on one axis."""
-    mix = d["mix"]
-
-    fig, axes = plt.subplots(1, 2, figsize=(6.9, 3.9),
-                             gridspec_kw={"width_ratios": [1.0, 1.05]})
-
-    ax = axes[0]
-    _stacked_mix(ax, mix)  # sets ticks, labels and the y-axis itself
-    ax.set_xticklabels([str(s) for s in mix.index], rotation=0, ha="center")
-    ax.set_xlabel("cost scenario")
-    ax.set_title("(a) the mix in each cost scenario", loc="left",
-                 fontsize=9, color=INK)
-    ax.set_ylim(top=ax.get_ylim()[1] * 1.42)  # headroom for the legend
-    ax.legend(frameon=False, fontsize=6.5, ncol=2, loc="upper left")
-
-    ax = axes[1]
-    metrics = [
-        ("Danish system cost", "dk_system_cost", 1.0),
-        ("Danish emissions", "emissions_t", 1.0),
-        ("solar", "cap_solar_pv_mw", 1.0),
-        ("offshore wind", "cap_wind_offshore_mw", 1.0),
-        ("battery", "cap_battery_mw", 1.0),
-        ("peakers", "cap_peaker_mw", 1.0),
-    ]
-    # An output the reference holds very little of (a near-idle peaker, near-zero
-    # emissions) can range over thousands of per cent of it; such a bar is cut
-    # at the edge of the axis and its end written beside it, so that it does not
-    # flatten every other bar to a dot.
-    x_max = 400.0
-
-    def range_bar(lo, hi, y, colour, above):
-        ax.plot([lo, min(hi, x_max)], [y, y], color=colour, lw=3,
-                solid_capstyle="butt")
-        if hi > x_max:  # the cost bar is labelled above, the weather bar below
-            ax.text(x_max * 0.98, y + (0.1 if above else -0.1),
-                    f"to {hi:,.0f} %", ha="right",
-                    va="bottom" if above else "top", fontsize=6.5, color=colour)
-
-    labels, ypos = [], []
-    for i, (label, col, _) in enumerate(metrics):
-        if col not in mix.columns:
-            continue
-        ref = (float(mix.loc[COSTS_REFERENCE_SCENARIO, col])
-               if COSTS_REFERENCE_SCENARIO in mix.index
-               else float(mix[col].median()))
-        if ref == 0:
-            continue
-        y = len(metrics) - i
-        lo, hi = mix[col].min() / ref * 100, mix[col].max() / ref * 100
-        range_bar(lo, hi, y + 0.14, VERMILLION, above=True)
-        if weather is not None and col in weather.columns:
-            wlo, whi = weather[col].min() / ref * 100, weather[col].max() / ref * 100
-            range_bar(wlo, whi, y - 0.14, BLUE, above=False)
-        labels.append(label)
-        ypos.append(y)
-    ax.set_xlim(0, x_max)
-    ax.axvline(100, color="#999999", lw=0.8, linestyle="--")
-    ax.set_yticks(ypos)
-    ax.set_yticklabels(labels, fontsize=8)
-    ax.set_xlabel("range, % of the baseline-cost reference")
-    ax.set_title("(b) which uncertainty dominates?", loc="left",
-                 fontsize=9, color=INK)
-    ax.grid(axis="x")
-    ax.plot([], [], color=BLUE, lw=3, label="across weather years")
-    ax.plot([], [], color=VERMILLION, lw=3, label="across cost scenarios")
-    # Below the axis label: inside the panel the ranges can reach any corner.
-    ax.legend(frameon=False, fontsize=7.5, ncol=2, loc="upper center",
-              bbox_to_anchor=(0.5, -0.15))
-
-    fig.tight_layout()
-    fig.savefig(FIGURES / "costs_uncertainty.pdf")
-    plt.close(fig)
-
-
-# The middle scenario, which is the very cost table sections 7 and 9 solve
-# on -- so panel (b) measures both spreads against the reference system
-# rather than against a point that appears in neither sweep.
-COSTS_REFERENCE_SCENARIO = "baseline"
-
-
-def values_costs(d, weather=None):
+def values_costs(d):
     s = d["summary"]
     mix = d["mix"]
-    scenarios = s["scenarios"]
-    examples = s.get("scenario_examples", {})
     macros = {
-        "CostScenarioCount": f"{len(scenarios)}",
         "CostHorizon": f"{s['horizon']}",
         # The trend the scenarios are built out of: technology-data's own
         # path from its near vintage to the horizon section 7 solves on,
@@ -3186,66 +3083,20 @@ def values_costs(d, weather=None):
         "CostTrendFirstYear": f"{s['trend_base_year']}",
         "CostTrendLastYear": f"{s['horizon']}",
         "CostTrendScalePct": f"{100 * s['trend_scale']:.0f}",
-        "CostSpreadPct": f"{s['cost_spread_pct']:.1f}",
-        # The DANISH bill, in bn EUR/year: annualised capital plus operating
-        # cost of the candidates this section chooses. The solver's objective
-        # spans twelve zones of which eleven are fixed here, so quoting it
-        # would report a European total and call it Denmark's bill.
-        "CostSystemCostMinBn": f"{mix['dk_system_cost'].min() / 1e9:.1f}",
-        "CostSystemCostMaxBn": f"{mix['dk_system_cost'].max() / 1e9:.1f}",
         # Net of trade, as in section 7 and WeatherNetCostSpreadPct.
         "CostNetCostSpreadPct": f"{spread_pct(mix['dk_net_cost']):.1f}",
-        "CostNetCostMinBn": f"{mix['dk_net_cost'].min() / 1e9:.1f}",
-        "CostNetCostMaxBn": f"{mix['dk_net_cost'].max() / 1e9:.1f}",
-        "CostEmissionsMinMt": f"{mix['emissions_t'].min() / 1e6:.2f}",
-        "CostEmissionsMaxMt": f"{mix['emissions_t'].max() / 1e6:.2f}",
         "CostSolarMinGW": f"{mix['cap_solar_pv_mw'].min() / 1000:.1f}",
         "CostSolarMaxGW": f"{mix['cap_solar_pv_mw'].max() / 1000:.1f}",
-        "CostOffshoreMinGW": f"{mix['cap_wind_offshore_mw'].min() / 1000:.1f}",
-        "CostOffshoreMaxGW": f"{mix['cap_wind_offshore_mw'].max() / 1000:.1f}",
-        "CostBatteryMinGW": f"{mix['cap_battery_mw'].min() / 1000:.1f}",
-        "CostBatteryMaxGW": f"{mix['cap_battery_mw'].max() / 1000:.1f}",
     }
-    # What the scenarios actually did to a few headline machines, so the
-    # prose can say how wide the band is in euros rather than describing it
-    # only as "half the trend". EUR/kW, as the cost tables carry it.
-    for tech, name in [("solar-utility", "Solar"), ("onwind", "Onshore"),
-                       ("offwind", "Offshore"), ("battery storage", "Battery")]:
-        row = examples.get(tech) or {}
-        for key, suffix in [("pessimistic_eur_per_kw", "Pess"),
-                            ("baseline_eur_per_kw", "Base"),
-                            ("optimistic_eur_per_kw", "Opt")]:
-            if key in row:
-                macros[f"CostCapex{name}{suffix}"] = f"{row[key]:.0f}"
-    if weather is not None:
-        # The headline comparison: whose range is wider, as a share of the
-        # reference system, averaged over the capacity metrics.
-        cols = ["cap_solar_pv_mw", "cap_wind_offshore_mw", "cap_battery_mw"]
-        ref = (mix.loc[COSTS_REFERENCE_SCENARIO]
-               if COSTS_REFERENCE_SCENARIO in mix.index else mix.median())
-        def width(frame):
-            spans = [(frame[c].max() - frame[c].min()) / ref[c] * 100
-                     for c in cols if c in frame.columns and ref[c] > 0]
-            return sum(spans) / len(spans) if spans else float("nan")
-        macros["CostCapacityRangePct"] = f"{width(mix):.0f}"
-        macros["WeatherCapacityRangePct"] = f"{width(weather):.0f}"
-
-        # The quoted comparisons of section 9's panel-(b) discussion, so the
-        # prose cannot go stale against the figure: per-output ranges as a
-        # share of the reference system, and the carbon-price ratios.
-        def range_pct(frame, col):
-            if col not in frame.columns or not ref.get(col, 0) > 0:
-                return float("nan")
-            return (frame[col].max() - frame[col].min()) / ref[col] * 100
-
-        for name, col in [("Battery", "cap_battery_mw"),
-                          ("OCGT", "cap_peaker_mw")]:
-            macros[f"Cost{name}RangePct"] = f"{range_pct(mix, col):.0f}"
-            macros[f"Weather{name}RangePct"] = f"{range_pct(weather, col):.0f}"
-        for name, frame in [("Cost", mix), ("Weather", weather)]:
-            prices = frame["emissions_t"]
-            if prices.min() > 0:
-                macros[f"{name}EmissionsRatio"] = f"{prices.max() / prices.min():.1f}"
+    # How far the scenarios move a machine's investment cost, as a share of
+    # the projection: the same in both directions by construction, and very
+    # different across machines, because the projected declines are.
+    examples = s.get("scenario_examples", {})
+    for tech, name in [("solar-utility", "Solar"), ("onwind", "Onshore")]:
+        row = examples.get(tech)
+        if row:
+            change = row["pessimistic_eur_per_kw"] / row["baseline_eur_per_kw"] - 1
+            macros[f"Cost{name}ChangePct"] = f"{100 * change:.0f}"
     _write_values("costs_values.tex", macros, "results/costs_summary.json")
 
 
@@ -3367,24 +3218,55 @@ SOURCE_LABELS = {
 }
 # What is built, in the order of the stack; the two gas turbines share the
 # gas colour of the generation panel, so one colour means one fuel family.
+# The hydrogen scenario's machines come last, so that the rest of the stack
+# compares directly with the scenario it adds to; the reformers' capacity is
+# hydrogen, everything else's electricity.
 BUILT = [("solar_pv", "solar", ["solar_pv"]),
          ("wind_onshore", "onshore wind", ["wind_onshore"]),
          ("wind_offshore", "offshore wind", ["wind_offshore"]),
          ("battery", "battery", ["battery"]),
          ("ccgt", "gas turbines", ["ccgt", "ocgt"]),
-         ("transmission_new", "interconnectors", ["transmission_new"])]
+         ("transmission_new", "interconnectors", ["transmission_new"]),
+         ("electrolyser", "electrolysers", ["electrolyser"]),
+         ("h2_turbine", "hydrogen turbines", ["h2_turbine"]),
+         ("smr", "reformers", ["smr"])]
 BUILT_COLORS = {**LADDER_COLORS, "transmission_new": "#AA4499"}
-# Who sets a price level, as the price-duration figure names it.
-SETTER_LABELS = {
-    "CCGT": "existing CCGT", "ccgt": "new CCGT", "OCGT": "existing OCGT",
-    "ocgt": "new OCGT", "coal": "coal", "lignite": "lignite",
-    "biomass": "biomass", "shed_flex": "flexible demand",
-    "shed_industry": "interruptible industry", "electrolyser": "electrolysers",
-    "battery": "batteries", "cars": "cars", "solar": "wind, solar",
-    "solar_pv": "wind, solar", "onwind": "wind, solar",
-    "wind_onshore": "wind, solar", "offwind-ac": "wind, solar",
-    "wind_offshore": "wind, solar", "ror": "wind, solar",
-}
+# The cars and the flexible demand block, in the figures that show them
+# beside the plants: the cars in smart charging's blue, which no plant in
+# those figures uses.
+CARS_COLOR, DEMAND_COLOR = BLUE, "#CC6677"
+# What sets the price, as the prices figures group it (run_expansion.py,
+# SETTER_GROUP), in the order the bars stack: the setters of the cheap hours
+# first, the plants of the dear ones last.
+SETTER_STYLE = [
+    ("wind_solar", "wind, solar", SOURCE_COLORS["solar"]),
+    ("hydro", "hydro", SOURCE_COLORS["hydro"]),
+    ("battery", "batteries", BUILT_COLORS["battery"]),
+    ("cars", "cars", CARS_COLOR),
+    ("electrolyser", "electrolysers", LADDER_COLORS["electrolyser"]),
+    ("nuclear", "nuclear", SOURCE_COLORS["nuclear"]),
+    ("biomass", "biomass", SOURCE_COLORS["biomass"]),
+    ("coal", "coal", SOURCE_COLORS["coal"]),
+    ("gas", "gas plants", SOURCE_COLORS["gas"]),
+    ("demand", "flexible demand", DEMAND_COLOR),
+    ("unattributed", "not attributed", "#DDDDDD"),
+]
+# What covers the scarcest hours, as the margins figures group it
+# (run_expansion.py, scarce_hours()), in the order the bars stack: the firm
+# plants, the fossil ones, then the margins the last quarter of the cut is
+# about.
+COVER_STYLE = [
+    ("nuclear", "nuclear", SOURCE_COLORS["nuclear"]),
+    ("hydro", "hydro", SOURCE_COLORS["hydro"]),
+    ("biomass", "biomass", SOURCE_COLORS["biomass"]),
+    ("coal", "coal", SOURCE_COLORS["coal"]),
+    ("gas", "natural gas", SOURCE_COLORS["gas"]),
+    ("biomethane", "biomethane", SOURCE_COLORS["biomethane"]),
+    ("hydrogen", "hydrogen", SOURCE_COLORS["hydrogen"]),
+    ("battery", "batteries", BUILT_COLORS["battery"]),
+    ("cars", "cars", CARS_COLOR),
+    ("demand", "flexible demand", DEMAND_COLOR),
+]
 
 
 def _figure_budgets(e):
@@ -3405,31 +3287,29 @@ def _ladder_at(e, rung):
     return frame.set_index("key")
 
 
-def fig_expansion_baseline(d):
-    """Figure (fig:expansion:baseline): the baseline at no budget and at the
-    two budgets the section reads, (a) where its electricity comes from,
-    existing plants solid and new ones hatched, (b) what it builds, with
-    sigma above each bar, and (c) what the year costs."""
+def _system_figure(e, cases, name, widths=(1.25, 1.1, 0.75)):
+    """Three panels for a set of cases, as (rung, budget key, tick label):
+    (a) where the electricity comes from, existing plants solid and new ones
+    hatched, (b) what is built, with tau above each bar, and (c) what the
+    year costs. Scenario names need a wider cost panel than budgets do."""
     import numpy as np
     from matplotlib.patches import Patch
-    _, keys, labels = _figure_budgets(d)
-    gen = d["generation"]
-    gen = gen[gen["rung"] == "basic"].copy()
-    gen["key"] = gen["budget_fraction"].astype(str)
+    gen = e["generation"].copy()
     gen["group"] = gen["source"].map(lambda s: SOURCE_GROUP.get(s, s))
-    row = _ladder_at(d, "basic")
-    xs = np.arange(len(keys))
+    rows = pd.DataFrame([_ladder_at(e, rung).loc[key] for rung, key, _ in cases])
+    xs = np.arange(len(cases))
 
     fig, axes = plt.subplots(1, 3, figsize=(6.4, 3.7),
-                             gridspec_kw={"width_ratios": [1.25, 1.1, 0.75]})
+                             gridspec_kw={"width_ratios": list(widths)})
     ax = axes[0]
-    bottom = np.zeros(len(keys))
+    bottom = np.zeros(len(cases))
     handles = []
     for source in SOURCE_ORDER:
         drawn = False
         for vintage, hatch in [("existing", None), ("new", "////")]:
             pick = gen[(gen["group"] == source) & (gen["vintage"] == vintage)]
-            twh = pick.groupby("key")["mwh"].sum().reindex(keys).fillna(0.0).to_numpy() / 1e6
+            twh = np.array([_case_rows(pick, rung, key)["mwh"].sum()
+                            for rung, key, _ in cases]) / 1e6
             if twh.max() < 0.5:
                 continue
             ax.bar(xs, twh, bottom=bottom, width=0.62, color=SOURCE_COLORS[source],
@@ -3442,10 +3322,10 @@ def fig_expansion_baseline(d):
     ax.set_title("(a) where the power comes from", loc="left", fontsize=9, color=INK)
 
     ax = axes[1]
-    bottom = np.zeros(len(keys))
+    bottom = np.zeros(len(cases))
     for key, label, techs in BUILT:
-        cols = [f"cap_{t}_mw" for t in techs if f"cap_{t}_mw" in row.columns]
-        gw = row.loc[keys, cols].fillna(0.0).sum(axis=1).to_numpy() / 1e3
+        cols = [f"cap_{t}_mw" for t in techs if f"cap_{t}_mw" in rows.columns]
+        gw = rows[cols].astype(float).fillna(0.0).sum(axis=1).to_numpy() / 1e3
         if gw.max() < 0.05:
             continue
         ax.bar(xs, gw, bottom=bottom, width=0.62, color=BUILT_COLORS[key],
@@ -3453,143 +3333,247 @@ def fig_expansion_baseline(d):
         bottom += gw
         if key not in ("solar_pv", "wind_onshore", "wind_offshore"):
             handles.append(Patch(facecolor=BUILT_COLORS[key], label=label))
-    for i, key in enumerate(keys):
-        sigma = row.at[key, "co2_price_eur_t"]
-        if pd.notna(sigma):
-            ax.annotate(f"τ = {sigma:.0f}", xy=(i, bottom[i]), xytext=(0, 3),
+    for i, tau in enumerate(rows["co2_price_eur_t"].astype(float)):
+        if pd.notna(tau):
+            ax.annotate(f"τ = {tau:.0f}", xy=(i, bottom[i]), xytext=(0, 3),
                         textcoords="offset points", ha="center", fontsize=7.5, color=INK)
     ax.set_ylim(0, bottom.max() * 1.12)
     ax.set_ylabel("new capacity (GW)")
     ax.set_title("(b) what is built", loc="left", fontsize=9, color=INK)
 
     ax = axes[2]
-    capital = row.loc[keys, "capital_cost_eur"].to_numpy() / 1e9
-    running = row.loc[keys, "operating_cost_eur"].to_numpy() / 1e9
+    capital = rows["capital_cost_eur"].astype(float).to_numpy() / 1e9
+    running = rows["operating_cost_eur"].astype(float).to_numpy() / 1e9
     ax.bar(xs, capital, width=0.62, color="#7f7f7f", edgecolor="white", label="capital")
     ax.bar(xs, running, bottom=capital, width=0.62, color="#c7c7c7", edgecolor="white",
            label="operating")
     ax.set_ylabel("system cost (bn€ / year)")
     ax.set_title("(c) what it costs", loc="left", fontsize=9, color=INK)
-    ax.legend(frameon=False, fontsize=7, loc="upper left")
+    # The key goes above the shorter of the two outer bars.
+    total = capital + running
+    ax.legend(frameon=False, fontsize=7,
+              loc="upper left" if total[0] <= total[-1] else "upper right")
     for ax in axes:
-        ax.set_xticks(xs, ["none"] + labels[1:], fontsize=8)
+        ax.set_xticks(xs, [label for _, _, label in cases], fontsize=8)
         ax.grid(axis="y")
     handles.append(Patch(facecolor="white", edgecolor="#666666", hatch="////",
                          label="new plant"))
     fig.legend(handles=handles, frameon=False, fontsize=7, ncol=5,
                loc="outside lower center")
-    fig.savefig(FIGURES / "expansion_baseline.pdf")
+    fig.savefig(FIGURES / name)
     plt.close(fig)
 
 
-def _plateau_labels(setters, rung, key, min_hours=150, gap=10, most=6):
-    """The longest price levels of one case and the plant named for each:
-    the plant with the most hours at that level, or, where no plant is
-    named, the flexible machine (price_setters in run_expansion.py names a
-    battery, the cars or an electrolyser only in hours no plant is
-    marginal, and leaves a level set outside the zone unnamed). A level
-    within `gap` EUR/MWh of a longer one goes unlabelled, so that two
-    labels never overlap."""
-    s = setters[(setters["rung"] == rung)
-                & (setters["budget_fraction"].astype(str) == key)].copy()
-    s["setter"] = s["setter"].fillna("").astype(str)
-    hours = s.groupby("price_eur_mwh")["hours"].sum()
-    flexible = s["setter"].str.split(",").str[0].isin(["battery", "cars", "electrolyser"])
-    named = s[s["setter"] != ""].assign(plant=~flexible).sort_values(
-        ["plant", "hours"], ascending=False)
-    first = named.drop_duplicates("price_eur_mwh").set_index("price_eur_mwh")["setter"]
-    out = []
-    for price, h in hours.sort_values(ascending=False).items():
-        if h < min_hours or price not in first.index:
-            continue
-        if any(abs(price - p) < gap for p, _ in out):
-            continue
-        out.append((price, SETTER_LABELS.get(first[price].split(",")[0], first[price])))
-        if len(out) == most:
-            break
-    return out
+def fig_expansion_baseline(d):
+    """Figure (fig:expansion:baseline): the baseline at no budget and at the
+    two budgets the section reads, (a) where its electricity comes from,
+    (b) what it builds and (c) what the year costs."""
+    _, keys, labels = _figure_budgets(d)
+    cases = [("basic", key, label) for key, label in zip(keys, ["none"] + labels[1:])]
+    _system_figure(d, cases, "expansion_baseline.pdf")
 
 
-# The top of the price-duration figure's axis, EUR/MWh; the scarcity hours
+# The top of the price-duration panels' axis, EUR/MWh; the scarcity hours
 # above it would flatten everything else.
 PRICES_CUTOFF = 350
+# Two-line names for the scenarios where a bar's tick label has little room.
+SHORT_LABELS = {"no budget": "no\nbudget", "smart charging": "smart\ncharging",
+                "vehicle-to-grid": "vehicle-\nto-grid"}
+
+
+def _case_rows(frame, rung, key):
+    """One case's rows of a figure table, by scenario and budget key."""
+    return frame[(frame["rung"] == rung) & (frame["budget_fraction"].astype(str) == key)]
+
+
+def _section_cases(e, section):
+    """The cases a section's prices and margins figures compare, as (rung,
+    budget key, label, colour): the baseline at the figures' three budgets
+    in section 8.2, and each scenario beside the one it adds to at the
+    reference budget in sections 8.3 and 8.4."""
+    _, keys, labels = _figure_budgets(e)
+    ref = keys[-1]
+    if section == "baseline":
+        return [("basic", key, label, color) for key, label, color
+                in zip(keys, ["no budget"] + labels[1:], ["#9e9e9e", BLUE, VERMILLION])]
+    rungs = ["basic", "ev", "ev_v2g"] if section == "ev" else ["ev", "ev_h2"]
+    return [(rung, ref, RUNG_LABELS[rung], RUNG_COLORS[rung]) for rung in rungs]
+
+
+def _prices_figure(e, cases, name):
+    """Two panels for a set of cases: (a) the system's price duration curve,
+    the zonal prices weighted by demand, and (b) what sets the price, as
+    shares of the year's demand (run_expansion.py, system_setters())."""
+    import numpy as np
+    from matplotlib.patches import Patch
+    duration, setters = e["price_duration"], e["price_setters"]
+    fig, axes = plt.subplots(1, 2, figsize=(6.4, 3.3),
+                             gridspec_kw={"width_ratios": [1.3, 1.0]})
+    ax = axes[0]
+    share = 100 * (np.arange(len(duration)) + 0.5) / len(duration)
+    peak = 0.0
+    for rung, key, label, color in cases:
+        tau = _ladder_at(e, rung).at[key, "co2_price_eur_t"]
+        series = duration[f"{rung}|{key}"]
+        ax.plot(share, series, color=color, linewidth=1.5,
+                label=label + ("" if pd.isna(tau) else f" (τ = {tau:.0f} €/t)"))
+        peak = max(peak, float(series.max()))
+    if peak > PRICES_CUTOFF:
+        ax.annotate(f"peaks reach {peak:,.0f} €/MWh (cut off)", xy=(99, PRICES_CUTOFF - 6),
+                    ha="right", va="top", fontsize=7, color=INK)
+    ax.set_ylim(0, PRICES_CUTOFF)
+    ax.set_xlim(0, 100)
+    ax.set_xlabel("share of hours (%)")
+    ax.set_ylabel("system price (€/MWh)")
+    ax.set_title("(a) the price duration curve", loc="left", fontsize=9, color=INK)
+    ax.grid(axis="y")
+    ax.legend(frameon=False, fontsize=7, loc="upper right", bbox_to_anchor=(1.0, 0.92))
+
+    ax = axes[1]
+    ys = np.arange(len(cases))[::-1]
+    present = set()
+    for y, (rung, key, _, _) in zip(ys, cases):
+        sub = _case_rows(setters, rung, key).set_index("setter")["share"]
+        left = 0.0
+        for group, _, color in SETTER_STYLE:
+            value = 100 * float(sub.get(group, 0.0))
+            if value < 0.05:
+                continue
+            ax.barh(y, value, left=left, height=0.62, color=color,
+                    edgecolor="white", linewidth=0.5)
+            left += value
+            present.add(group)
+    ax.set_yticks(ys, [SHORT_LABELS.get(c[2], c[2]) for c in cases], fontsize=8)
+    ax.set_xlim(0, 100)
+    ax.set_xlabel("share of demand (%)")
+    ax.set_title("(b) what sets the price", loc="left", fontsize=9, color=INK)
+    handles = [Patch(facecolor=color, label=label)
+               for group, label, color in SETTER_STYLE if group in present]
+    fig.legend(handles=handles, frameon=False, fontsize=7, ncol=6,
+               loc="outside lower center")
+    fig.savefig(FIGURES / name)
+    plt.close(fig)
+
+
+def _margins_figure(e, cases, name):
+    """Two panels for a set of cases: (a) what covers the tenth of the year
+    with the highest residual demand, as shares of what was delivered in it
+    (run_expansion.py, scarce_hours()), and (b) what one more MW of storage
+    of each duration would earn against its annual cost, in the zone where
+    it earns the most (marginal_storage())."""
+    import numpy as np
+    from matplotlib.patches import Patch
+    scarce, storage = e["scarce_hours"], e["marginal_storage"]
+    fig, axes = plt.subplots(1, 2, figsize=(6.4, 3.4),
+                             gridspec_kw={"width_ratios": [0.9, 1.3]})
+    ax = axes[0]
+    xs = np.arange(len(cases))
+    bottom = np.zeros(len(cases))
+    present = set()
+    shares = [_case_rows(scarce, rung, key).set_index("source")["share"]
+              for rung, key, _, _ in cases]
+    for group, _, color in COVER_STYLE:
+        values = np.array([100 * float(s.get(group, 0.0)) for s in shares])
+        if values.max() < 0.05:
+            continue
+        ax.bar(xs, values, bottom=bottom, width=0.62, color=color,
+               edgecolor="white", linewidth=0.5)
+        bottom += values
+        present.add(group)
+    ax.set_xticks(xs, [SHORT_LABELS.get(c[2], c[2]) for c in cases], fontsize=8)
+    ax.set_ylim(0, 100)
+    ax.set_ylabel("share of what is delivered (%)")
+    ax.set_title("(a) the scarcest tenth of the year", loc="left", fontsize=9, color=INK)
+
+    ax = axes[1]
+    for rung, key, label, color in cases:
+        sub = _case_rows(storage, rung, key)
+        best = (sub["revenue_eur_mw"] / sub["cost_eur_mw"]).groupby(sub["hours"]).max()
+        ax.plot(best.index, best.to_numpy(), color=color, linewidth=1.5, marker="o",
+                markersize=3, label=label)
+    ax.axhline(1.0, color="#999999", linestyle=":", linewidth=1.0)
+    ax.annotate("revenue covers the cost", xy=(700, 1.0), xytext=(0, 3),
+                textcoords="offset points", ha="right", fontsize=7, color=INK)
+    ax.set_xscale("log")
+    ax.set_xticks([8, 24, 168, 720], ["8 hours", "1 day", "1 week", "1 month"], fontsize=8)
+    ax.minorticks_off()
+    ax.set_ylim(0, 1.12)
+    ax.set_xlabel("duration of the storage facility")
+    ax.set_ylabel("revenue / annual cost")
+    ax.set_title("(b) one more MW of storage", loc="left", fontsize=9, color=INK)
+    ax.grid(axis="y")
+    ax.legend(frameon=False, fontsize=7, loc="center right")
+    handles = [Patch(facecolor=color, label=label)
+               for group, label, color in COVER_STYLE if group in present]
+    fig.legend(handles=handles, frameon=False, fontsize=7, ncol=5,
+               loc="outside lower center")
+    fig.savefig(FIGURES / name)
+    plt.close(fig)
 
 
 def fig_expansion_prices(d):
-    """Figure (fig:expansion:prices): the German price duration curve at the
-    figures' three budgets, the deepest one's plateaus labelled by the plant
-    that sets them."""
-    import numpy as np
-    _, keys, labels = _figure_budgets(d)
-    duration = d["price_duration"]
-    row = _ladder_at(d, "basic")
-    share = 100 * (np.arange(len(duration)) + 0.5) / len(duration)
-    fig, ax = plt.subplots(figsize=(6.4, 3.6))
-    for key, label, color in zip(keys, labels, ["#9e9e9e", BLUE, VERMILLION]):
-        sigma = row.at[key, "co2_price_eur_t"]
-        name = label + ("" if pd.isna(sigma) else f" (τ = {sigma:.0f} €/t)")
-        ax.plot(share, duration[f"basic|{key}"], color=color, linewidth=1.5, label=name)
-    top = PRICES_CUTOFF
-    peak = duration[[f"basic|{k}" for k in keys]].max().max()
-    if peak > top:
-        ax.annotate(f"peaks reach {peak:,.0f} €/MWh (cut off)", xy=(99, top - 6),
-                    ha="right", va="top", fontsize=7.5, color=INK)
-    deepest = duration[f"basic|{keys[-1]}"].to_numpy()
-    for price, label in _plateau_labels(d["price_setters"], "basic", keys[-1]):
-        on = np.where(np.abs(deepest - price) < 0.6)[0]
-        if len(on):
-            ax.annotate(label, xy=(share[on].mean(), price), xytext=(0, 3),
-                        textcoords="offset points", ha="center", fontsize=7,
-                        color=VERMILLION)
-    ax.set_ylim(0, top)
-    ax.set_xlim(0, 100)
-    ax.set_xlabel("share of hours (%)")
-    ax.set_ylabel("German price (€/MWh)")
-    ax.grid(axis="y")
-    ax.legend(frameon=False, fontsize=8, loc="upper right", bbox_to_anchor=(1.0, 0.92))
-    fig.savefig(FIGURES / "expansion_prices.pdf")
-    plt.close(fig)
+    """Figure (fig:expansion:prices): the baseline's system price at the
+    figures' three budgets, and what sets it."""
+    _prices_figure(d, _section_cases(d, "baseline"), "expansion_prices.pdf")
 
 
-EV_STYLE = {"basic": "on arrival", "ev": "smart charging", "ev_v2g": "vehicle-to-grid"}
+def fig_expansion_margins(d):
+    """Figure (fig:expansion:margins): the baseline's margins at the
+    figures' three budgets."""
+    _margins_figure(d, _section_cases(d, "baseline"), "expansion_margins.pdf")
 
 
-def fig_expansion_ev(d):
-    """Figure (fig:expansion:ev): a summer and a winter week in Germany at
-    the middle budget, charging on arrival against smart charging and
-    vehicle-to-grid: (top) the price, (middle) what the cars draw from the
-    grid less what they give back, (bottom) the stationary batteries'
-    charging less their discharging."""
-    from matplotlib.dates import DateFormatter
-    weeks = d["ev_weeks"]
-    names = list(d["summary"]["ev_weeks"])
-    fig, axes = plt.subplots(3, 2, figsize=(6.4, 5.8), sharex="col", sharey="row")
-    for j, week in enumerate(names):
-        for rung, label in EV_STYLE.items():
-            w = weeks[(weeks["week"] == week) & (weeks["rung"] == rung)].set_index("hour")
-            if w.empty:
-                continue
-            color = RUNG_COLORS[rung]
-            axes[0, j].plot(w.index, w["price_eur_mwh"], color=color, linewidth=1.1,
-                            label=label)
-            axes[1, j].plot(w.index, (w["ev_charging_mw"] - w["ev_v2g_mw"]) / 1e3,
-                            color=color, linewidth=1.1, label=label)
-            if rung != "ev_v2g":
-                axes[2, j].plot(w.index, (w["battery_charging_mw"]
-                                          - w["battery_discharging_mw"]) / 1e3,
-                                color=color, linewidth=1.1, label=label)
-        axes[0, j].set_title(f"({'ab'[j]}) a {week} week", loc="left", fontsize=9, color=INK)
-        for i in range(3):
-            axes[i, j].grid(axis="y")
-            axes[i, j].axhline(0, color="#999999", linewidth=0.6)
-        axes[2, j].xaxis.set_major_formatter(DateFormatter("%a"))
-        axes[2, j].tick_params(axis="x", labelsize=7)
-    axes[0, 0].set_ylabel("price (€/MWh)")
-    axes[1, 0].set_ylabel("cars: charging\nless V2G (GW)")
-    axes[2, 0].set_ylabel("batteries: charging\nless discharging (GW)")
-    axes[0, 1].legend(frameon=False, fontsize=7, loc="lower left")
-    fig.savefig(FIGURES / "expansion_ev.pdf")
-    plt.close(fig)
+def _section_system_cases(e, section):
+    """A section's cases as _system_figure() takes them, with two-line tick
+    labels where the name is long."""
+    return [(rung, key, SHORT_LABELS.get(label, label))
+            for rung, key, label, _ in _section_cases(e, section)]
+
+
+# The panel widths of the scenario figures: three names under the cost
+# panel's bars need about a third more room than three budgets.
+SCENARIO_WIDTHS = (1.1, 1.0, 1.0)
+
+
+def fig_expansion_ev_system(d):
+    """Figure (fig:expansion:ev-system): the cars' two scenarios beside the
+    baseline at the reference budget, as fig:expansion:baseline reads the
+    baseline."""
+    _system_figure(d, _section_system_cases(d, "ev"), "expansion_ev_system.pdf",
+                   widths=SCENARIO_WIDTHS)
+
+
+def fig_expansion_hydrogen_system(d):
+    """Figure (fig:expansion:hydrogen-system): the hydrogen scenario beside
+    smart charging, the scenario it adds to, at the reference budget."""
+    _system_figure(d, _section_system_cases(d, "hydrogen"),
+                   "expansion_hydrogen_system.pdf", widths=SCENARIO_WIDTHS)
+
+
+def fig_expansion_ev_prices(d):
+    """Figure (fig:expansion:ev-prices): the cars' two scenarios beside the
+    baseline at the reference budget, as figure fig:expansion:prices reads
+    the baseline."""
+    _prices_figure(d, _section_cases(d, "ev"), "expansion_ev_prices.pdf")
+
+
+def fig_expansion_ev_margins(d):
+    """Figure (fig:expansion:ev-margins): the cars' two scenarios beside the
+    baseline at the reference budget, as fig:expansion:margins reads the
+    baseline."""
+    _margins_figure(d, _section_cases(d, "ev"), "expansion_ev_margins.pdf")
+
+
+def fig_expansion_hydrogen_prices(d):
+    """Figure (fig:expansion:hydrogen-prices): the hydrogen scenario beside
+    smart charging, the scenario it adds to, at the reference budget."""
+    _prices_figure(d, _section_cases(d, "hydrogen"), "expansion_hydrogen_prices.pdf")
+
+
+def fig_expansion_hydrogen_margins(d):
+    """Figure (fig:expansion:hydrogen-margins): the hydrogen scenario beside
+    smart charging at the reference budget."""
+    _margins_figure(d, _section_cases(d, "hydrogen"), "expansion_hydrogen_margins.pdf")
 
 
 H2_ROUTES = [("reformed_gas", "reformed, natural gas", LADDER_COLORS["smr"], None),
@@ -3600,8 +3584,8 @@ H2_ROUTES = [("reformed_gas", "reformed, natural gas", LADDER_COLORS["smr"], Non
 
 def fig_expansion_hydrogen(d):
     """Figure (fig:expansion:hydrogen): (a) where the hydrogen comes from at
-    the figures' three budgets, with sigma above each bar; (b) Germany at
-    the reference budget, month by month."""
+    the figures' three budgets, with tau above each bar; (b) the whole
+    system at the reference budget, month by month."""
     import numpy as np
     _, keys, labels = _figure_budgets(d)
     row = _ladder_at(d, "ev_h2")
@@ -3640,8 +3624,8 @@ def fig_expansion_hydrogen(d):
                     edgecolor="white", linewidth=0.6)
         bottom += twh
     axes[1].set_xticks(mx, ["J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"])
-    axes[1].set_ylabel("German supply (TWh / month)")
-    axes[1].set_title(f"(b) Germany at {labels[-1]}, by month", loc="left", fontsize=9,
+    axes[1].set_ylabel("hydrogen supplied (TWh / month)")
+    axes[1].set_title(f"(b) at {labels[-1]}, by month", loc="left", fontsize=9,
                       color=INK)
     for ax in axes:
         ax.grid(axis="y")
@@ -3649,6 +3633,116 @@ def fig_expansion_hydrogen(d):
                loc="outside lower center")
     fig.savefig(FIGURES / "expansion_hydrogen.pdf")
     plt.close(fig)
+
+
+# A system price below this is "near zero" in the text, EUR/MWh: the hours
+# when wind and solar are curtailed.
+NEAR_ZERO_PRICE = 5
+
+
+def _expansion_figure_values(e):
+    """What the section quotes about its prices and margins figures, read
+    off their tables, and the numbers of the ladder the text reads beside
+    them. Results older than the tables lack them, and so does this. The
+    cases are named as the figures pair them: the baseline without a budget
+    (NoCap) and at the reference budget (Ref), and each scenario at the
+    reference budget (EVRef, VTwoGRef, HTwoRef)."""
+    s, ladder = e["summary"], e["ladder"]
+    ref, mid = s["reference_fraction"], s["mid_fraction"]
+    cases = [("basic", "none", "NoCap"), ("basic", str(ref), "Ref"),
+             ("ev", str(ref), "EVRef"), ("ev_v2g", str(ref), "VTwoGRef"),
+             ("ev_h2", str(ref), "HTwoRef")]
+    macros = {"ExpNearZeroPrice": f"{NEAR_ZERO_PRICE}"}
+
+    def count(x):
+        return f"{x:,.0f}".replace(",", "{,}")
+
+    duration = e.get("price_duration")
+    dear = s.get("flex_block_wtp_eur_mwh")
+    if duration is not None and dear is not None:
+        for rung, key, case in cases:
+            p = duration[f"{rung}|{key}"]
+            macros |= {f"ExpPriceMean{case}": f"{p.mean():.0f}",
+                       f"ExpHoursFree{case}": count((p < NEAR_ZERO_PRICE).sum()),
+                       f"ExpHoursDear{case}": count((p > dear).sum())}
+
+    def shares(frame, column, rung, key):
+        sub = _case_rows(frame, rung, key).set_index(column)["share"]
+        return lambda *groups: f"{100 * float(sum(sub.get(g, 0.0) for g in groups)):.0f}"
+
+    setters = e.get("price_setters")
+    if setters is not None:
+        for rung, key, case in cases:
+            pct = shares(setters, "setter", rung, key)
+            macros |= {f"ExpSetterPlants{case}Pct": pct("gas", "coal", "biomass", "nuclear"),
+                       f"ExpSetterGas{case}Pct": pct("gas"),
+                       f"ExpSetterStorage{case}Pct": pct("battery", "cars", "hydro"),
+                       f"ExpSetterBattery{case}Pct": pct("battery"),
+                       f"ExpSetterCars{case}Pct": pct("cars"),
+                       f"ExpSetterElectrolyser{case}Pct": pct("electrolyser")}
+    scarce = e.get("scarce_hours")
+    if scarce is not None:
+        for rung, key, case in cases:
+            pct = shares(scarce, "source", rung, key)
+            macros |= {f"ExpScarceFossil{case}Pct": pct("gas", "coal"),
+                       f"ExpScarceHydro{case}Pct": pct("hydro"),
+                       f"ExpScarceBiomethane{case}Pct": pct("biomethane"),
+                       f"ExpScarceBattery{case}Pct": pct("battery"),
+                       f"ExpScarceCars{case}Pct": pct("cars"),
+                       f"ExpScarceDemand{case}Pct": pct("demand")}
+    storage = e.get("marginal_storage")
+    if storage is not None:
+        for rung, key, case in cases:
+            sub = _case_rows(storage, rung, key).assign(
+                ratio=lambda f: f["revenue_eur_mw"] / f["cost_eur_mw"])
+            best = sub.loc[sub.groupby("hours")["ratio"].idxmax()].set_index("hours")
+            for hours, name in [(8, "Eight"), (24, "Day"), (168, "Week"), (720, "Month")]:
+                if hours in best.index:
+                    macros[f"ExpStorage{name}{case}Pct"] = f"{100 * best.at[hours, 'ratio']:.0f}"
+            if case == "Ref" and 168 in best.index:
+                # What a week-long facility earns per MWh of its energy
+                # capacity, against what a MWh of battery capacity costs: the
+                # cost line's two parts, from the costs of two durations.
+                energy = ((best["cost_eur_mw"].iloc[-1] - best["cost_eur_mw"].iloc[0])
+                          / (best.index[-1] - best.index[0]))
+                power = best["cost_eur_mw"].iloc[0] - energy * best.index[0]
+                macros |= {
+                    "ExpStorageWeekCycles": f"{best.at[168, 'cycles']:.0f}",
+                    "ExpStorageWeekEnergyPct":
+                        f"{100 * (best.at[168, 'revenue_eur_mw'] - power) / 168 / energy:.0f}",
+                }
+
+    # The ladder's deep end beside the figures: the first budget point past
+    # the middle one, where the flexible demand block starts to give way.
+    rows = ladder.dropna(subset=["budget_share"])
+    at = {p: rows[rows["budget_share"] == p].set_index("rung")
+          for p in rows["budget_share"].unique()}
+    deeper = [p for p in at if ref < p < mid]
+    if deeper:
+        deep = max(deeper)
+        macros["ExpDeepCutPct"] = f"{100 * (1 - deep):.0f}"
+        for rung, name in [("basic", "Basic"), ("ev", "EV"), ("ev_v2g", "VTwoG")]:
+            if rung in at[deep].index:
+                macros[f"ExpSigmaDeep{name}"] = f"{at[deep].loc[rung, 'co2_price_eur_t']:.0f}"
+                if "shed_flex_hours" in rows.columns:
+                    macros[f"ExpFlexHoursDeep{name}"] = count(
+                        round(at[deep].loc[rung, "shed_flex_hours"], -2))
+    if "shed_flex_hours" in rows.columns:
+        basic = rows[rows["rung"] == "basic"].set_index("budget_share")
+        macros |= {
+            "ExpFlexHoursMid": count(round(basic.at[mid, "shed_flex_hours"], -2)),
+            "ExpFlexHoursRef": count(round(basic.at[ref, "shed_flex_hours"], -2)),
+            "ExpFlexTWhRef": f"{basic.at[ref, 'shed_flex_mwh'] / 1e6:.0f}",
+        }
+        for rung, name in [("basic", ""), ("ev", "EV"), ("ev_v2g", "VTwoG"), ("ev_h2", "HTwo")]:
+            if rung in at[ref].index:
+                macros[f"ExpCurtailed{name}Pct"] = (
+                    f"{100 * at[ref].loc[rung, 'curtailed_share']:.0f}")
+    bio = at[ref]["biomethane_total_mwh"]
+    for rung, name in [("ev", "EV"), ("ev_v2g", "VTwoG")]:
+        if rung in bio.index and bio.get("basic", 0.0) > 0:
+            macros[f"ExpBiomethaneSaved{name}Pct"] = f"{100 * (1 - bio[rung] / bio['basic']):.0f}"
+    return macros
 
 
 def values_expansion(d):
@@ -3913,26 +4007,17 @@ def values_expansion(d):
             "ExpSMRCapitalPerMWh": f"{s['smr_fixed_cost_eur_mw'] / 8760:.2f}",
             "ExpSMREmissionRate": f"{s['smr_emission_rate_t_mwh']:.3f}",
         }
-    # Why sigma sits where it does at the reference budget: in the hours
-    # coal is marginal, a new turbine burning biomethane pushes it out, and
-    # the turbine's investment condition returns sigma
-    # (eq:expansion:sigma-deep).
-    deep = s.get("deep_end_basic")
-    if deep:
-        macros |= {
-            "ExpDeepTurbineCost": f"{deep['turbine_cost_eur_mwh']:.0f}",
-            "ExpDeepCoalCost": f"{deep['coal_cost_eur_mwh']:.0f}",
-            "ExpDeepCoalRate": f"{deep['coal_rate_t_mwh']:.2f}",
-            "ExpDeepHours": f"{deep['coal_marginal_hours']:.0f}",
-            "ExpDeepTurbineFixed":
-                f"{deep['turbine_fixed_eur_mw']:,.0f}".replace(",", "{,}"),
-        }
-    # The same hours with flexible cars: more of them, which is why the
-    # deep end is cheaper with flexibility.
-    for rung, name in [("ev", "EV"), ("ev_v2g", "VTwoG")]:
-        other = s.get(f"deep_end_{rung}")
-        if other:
-            macros[f"ExpDeepHours{name}"] = f"{other['coal_marginal_hours']:.0f}"
+    # The backup the deep end builds: open-cycle turbines that burn
+    # biomethane, how many, and how many hours a year they run (to the
+    # nearest hundred: the text reads them as "about").
+    for rung, name in [("basic", ""), ("ev", "EV"), ("ev_v2g", "VTwoG"),
+                       ("ev_h2", "HTwo")]:
+        turbines = s.get(f"turbines_{rung}")
+        if turbines:
+            macros[f"ExpTurbine{name}GW"] = f"{turbines['gw']:.1f}"
+            macros[f"ExpTurbine{name}Hours"] = (
+                f"{round(turbines['full_load_hours'], -2):,.0f}".replace(",", "{,}"))
+    macros |= _expansion_figure_values(d)
     # prop:wire in the numbers: how many corridors stop at their ceiling,
     # and how far above its fixed cost the rent of the dearest one goes.
     wires = s.get(f"wires_{ref_key}")
@@ -3962,14 +4047,19 @@ def values_expansion(d):
                 f"ExpCars{name}Hours":
                     f"{cars['v2g_hours']:,.0f}".replace(",", "{,}"),
             }
-    # The German hydrogen price: one level at the middle budget, a summer
-    # and a winter level at the reference budget.
-    h2_mid, h2_ref = s.get(f"h2_price_{mid_key}"), s.get(f"h2_price_{ref_key}")
-    if h2_mid:
-        macros["ExpHTwoPriceMid"] = f"{h2_mid['mean']:.0f}"
+    # The price of hydrogen at the middle budget, which is the price of the
+    # dearest import step in use (eq:expansion:sigma-import), and the
+    # system's hydrogen price, weighted by demand, at the reference budget.
+    step, h2_ref = s.get(f"h2_import_step_{mid_key}"), s.get(f"h2_price_{ref_key}")
+    if step is not None:
+        macros["ExpHTwoPriceMid"] = f"{step:.0f}"
     if h2_ref:
-        macros |= {"ExpHTwoPriceDESummer": f"{h2_ref['summer']:.0f}",
-                   "ExpHTwoPriceDEWinter": f"{h2_ref['winter']:.0f}"}
+        macros["ExpHTwoPriceRef"] = f"{h2_ref['mean']:.0f}"
+    # How hard the electrolysers run in the scarcest hours, as a share of
+    # their average over the year.
+    scarce = s.get(f"electrolysers_scarce_{ref_key}")
+    if scarce is not None:
+        macros["ExpElectrolyserScarcePct"] = f"{100 * scarce:.0f}"
     # The vehicle-to-grid scenario's full-year check, posed as the hydrogen
     # scenario's is.
     res_v2g = d.get("resolution_v2g")
@@ -4224,7 +4314,6 @@ def build_figures(results):
         fig_storage_pdc(results["storage"])
         fig_storage_ramp(results["storage"])
         fig_storage_recovery(results["storage"])
-        fig_weather_foresight(results["storage"])
     else:
         print("skipping storage figures — run pipeline/run_storage.py first")
     if "heat" in results:
@@ -4259,26 +4348,25 @@ def build_figures(results):
         fig_greenfield_spell(results["greenfield"])
     else:
         print("skipping greenfield figures — run pipeline/run_greenfield.py first")
-    if "weather" in results:
-        fig_weather_mix(results["weather"])
-        fig_weather_cost(results["weather"])
-        fig_weather_pdc(results["weather"])
+    if "weather" in results and "costs" in results:
+        fig_uncertainty_variability(results["weather"], results["costs"])
     else:
-        print("skipping weather figures — run pipeline/run_weather.py first")
-    if "costs" in results:
-        fig_costs_uncertainty(
-            results["costs"],
-            weather=results.get("weather", {}).get("mix"),
-        )
-    else:
-        print("skipping cost-vintage figure — run pipeline/run_costs.py first")
+        print("skipping the variability figure — run pipeline/run_weather.py "
+              "and pipeline/run_costs.py first")
     if "expansion" in results:
         e = results["expansion"]
         fig_expansion_ladder(e)
+        prices, margins = ["price_duration", "price_setters"], ["scarce_hours", "marginal_storage"]
         for figure, tables in [(fig_expansion_baseline, ["generation"]),
-                               (fig_expansion_prices, ["price_duration", "price_setters"]),
-                               (fig_expansion_ev, ["ev_weeks"]),
-                               (fig_expansion_hydrogen, ["hydrogen_months"])]:
+                               (fig_expansion_prices, prices),
+                               (fig_expansion_margins, margins),
+                               (fig_expansion_ev_system, ["generation"]),
+                               (fig_expansion_ev_prices, prices),
+                               (fig_expansion_ev_margins, margins),
+                               (fig_expansion_hydrogen, ["hydrogen_months"]),
+                               (fig_expansion_hydrogen_system, ["generation"]),
+                               (fig_expansion_hydrogen_prices, prices),
+                               (fig_expansion_hydrogen_margins, margins)]:
             if all(e.get(t) is not None for t in tables):
                 figure(e)
             else:
@@ -4306,10 +4394,7 @@ def build_tables(results):
     if "weather" in results:
         values_weather(results["weather"])
     if "costs" in results:
-        values_costs(
-            results["costs"],
-            weather=results.get("weather", {}).get("mix"),
-        )
+        values_costs(results["costs"])
     if "expansion" in results:
         values_expansion(results["expansion"])
 

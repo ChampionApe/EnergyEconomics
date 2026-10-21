@@ -8,14 +8,14 @@ single solve. Each script owns the files that carry its prefix.
 |---|---|---|---|
 | `dispatch_*` | `run_dispatch.py` | §2 | the ten-generator dispatch: merit order, carbon tax, cap sweep, and the technology table |
 | `dispatch_t_*` | `run_dispatch_t.py` | §3 | hourly dispatch on the 2024 DK1 profiles: hours, residual load, duration curves, the penetration sweep, and the validation week |
-| `storage_*` | `run_storage.py` | §4 (and fig. 9.6) | battery arbitrage, the ramp sweep and the recovery experiment |
+| `storage_*` | `run_storage.py` | §4 (and §9.2) | battery arbitrage, the ramp sweep, the recovery experiment and the foresight comparison |
 | `heat_*` | `run_heat.py` | §5 | heat pump dispatch and the rollout sweep |
 | `network_*` | `run_network.py` | §6 | zonal prices, congestion rents, the calibration and validation, the expansion accounts |
 | `greenfield_*` | `run_greenfield.py` | §7 | screening curves, cost recovery, scarcity rents and the longest scarcity spell, the optimal mix and its experiments |
 | `expansion_*` | `run_expansion.py` | §8 | the three-rung expansion ladder on the twelve-zone network |
 | `weather_*` | `run_weather.py` | §9 | the §7 reference case re-solved on each weather year |
 | `costs_*` | `run_costs.py` | §9 | the same under pessimistic and optimistic cost readings |
-| `taxcap*` | `run_taxcap.py` | §9 | tax versus cap across weather years |
+| `taxcap*` | `run_taxcap.py` | none | tax versus cap across weather years; no figure in the note reads it |
 
 Every `*_summary.json` holds the scalars its section quotes in prose;
 `build.py` turns them into the macros the note reads, so the note quotes

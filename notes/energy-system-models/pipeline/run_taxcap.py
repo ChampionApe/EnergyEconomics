@@ -3,7 +3,7 @@ experiment section 2 promised when it stated the equivalence and its
 limits.
 
     python pipeline/run_taxcap.py                fast default (336 segments)
-    python pipeline/run_taxcap.py --hours 1095   the note's figures
+    python pipeline/run_taxcap.py --hours 1095   the resolution of the note's runs
 
 The basic rung of the expansion ladder (run_expansion.py, which must have
 been run first) is re-solved on each weather year of the zonal archive
@@ -12,8 +12,9 @@ carbon price is whatever the weather makes it; and under a carbon TAX equal
 to the reference year's carbon price, where the price is fixed and
 emissions are whatever the weather makes them. In the reference year the
 two coincide, by section 2's equivalence. In every other year they do not,
-and the two panels of the resulting figure are Weitzman's argument measured
-on this system.
+and the two results side by side are Weitzman's argument measured on this
+system. No figure in the note reads them; notebook 08 asks the same
+question of the section 7 model.
 
 The experiment lives here rather than on the Danish model of section 7
 because a territorial budget in an open economy hardly binds -- imports

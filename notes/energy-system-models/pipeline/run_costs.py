@@ -1,6 +1,6 @@
 """Re-solve the section 7 greenfield across cost scenarios — the second half
-of section 9's uncertainty question — and write what figure 9.4 needs into
-results/.
+of section 9's uncertainty question — and write what the cost side of
+figure 9.1 needs into results/.
 
     python pipeline/run_costs.py                 fast default (336 segments)
     python pipeline/run_costs.py --hours 1095    the note's figures
@@ -53,8 +53,8 @@ from run_greenfield import REFERENCE_TAX, mix_row, solve_case
 
 RESULTS = NOTE / "results"
 
-# Ordered most costly to cheapest, which is the order figure 9.4 plots them in
-# and the order the prose reads them in.
+# Ordered most costly to cheapest, which is the order results/costs_mix.csv
+# lists them in.
 COST_SCENARIOS = ["pessimistic", "baseline", "optimistic"]
 REFERENCE_SCENARIO = "baseline"  # what sections 7 and 9 solve on
 

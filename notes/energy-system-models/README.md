@@ -95,12 +95,12 @@ hours). Then `python pipeline/build.py` turns results into figures.
 |---|---|---|
 | §2 Dispatch | `python pipeline/run_dispatch.py` | 2.1–2.4, table 2.1 |
 | §3 Intermittency | `python pipeline/run_dispatch_t.py --hours 8784` | 3.1–3.8 |
-| §4 Storage | `python pipeline/run_storage.py --hours 8784` | 4.1–4.4, 9.6 |
+| §4 Storage | `python pipeline/run_storage.py --hours 8784` | 4.1–4.4 |
 | §5 Heat | `python pipeline/run_heat.py --hours 8784` | 5.1–5.3 |
-| §6 Transmission | `python pipeline/run_network.py --hours 1095` | 6.1–6.8 |
+| §6 Transmission | `python pipeline/run_network.py --hours 1095` | 6.1–6.9 |
 | §7 Investment | `python pipeline/run_greenfield.py --hours 1095` | 7.1–7.6 |
-| §8 Expansion at European scale | `python pipeline/run_expansion.py --hours 1095` | 8.1–8.4 |
-| §9 Uncertainty | `python pipeline/run_weather.py --hours 1095` and `python pipeline/run_costs.py --hours 1095` (both after §7's run), then `python pipeline/run_taxcap.py --hours 1095` (after §8's run) | 9.1–9.5 |
+| §8 Expansion at European scale | `python pipeline/run_expansion.py --hours 1095` | 8.1–8.11 |
+| §9 Uncertainty | `python pipeline/run_weather.py --hours 1095` and `python pipeline/run_costs.py --hours 1095` (both after §7's run) | 9.1 |
 
 `--hours` is the instance-size parameter throughout. For the dispatch-only
 models it samples every k-th hour of the year (so even a small run sees all

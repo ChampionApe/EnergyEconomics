@@ -16,7 +16,7 @@ the state-of-charge dynamics apart. Experiments:
     recovery    wind scaled up (deep cannibalisation) with
                 the battery swept from 0 to 8 GW             -> fig 4.4
     foresight   perfect foresight vs day-by-day myopic
-                operation of the base battery                -> fig 9.6
+                operation of the base battery                -> section 9.2
 """
 
 import argparse

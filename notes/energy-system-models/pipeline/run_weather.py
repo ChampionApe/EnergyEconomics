@@ -1,6 +1,6 @@
 """Re-solve the section 7 reference case across weather years — the
-uncertainty section's sweep — and write everything its weather figures
-need into results/.
+uncertainty section's sweep — and write everything the weather side of its
+figure needs into results/.
 
     python pipeline/run_weather.py                fast default (336 segments)
     python pipeline/run_weather.py --hours 1095   the note's figures
@@ -21,8 +21,8 @@ so the reference column of this sweep IS the reference case: it is served
 from the same cached solve rather than re-solved.
 
 (The tax-versus-cap experiment lives in run_taxcap.py, on the European
-model, where a cap actually binds. The perfect-foresight figure comes from
-run_storage.py.)
+model, where a cap actually binds. The foresight comparison of section 9.2
+comes from run_storage.py.)
 """
 
 import argparse

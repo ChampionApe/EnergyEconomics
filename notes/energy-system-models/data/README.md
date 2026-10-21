@@ -98,10 +98,11 @@ ask what it costs to build for 2050 and every other forward input they read
 — fuel prices, demand, potentials, hydrogen and EV demand — is at that same
 horizon. `run_greenfield.costs_check()` writes `results/costs_check.csv`
 comparing the 2025 vintage the small table of §§2–5 uses against the one
-§7 prices investment on; the residual difference is under 2% on efficiency.
+§7 prices investment on; the 2050 gas turbines are about 5–6% more
+efficient, and the wood-chip CHP differs by under 2%.
 
-§8's cost axis does **not** sweep the vintages. It holds the horizon at 2050
-and varies the projection instead: `cost_scenarios.csv` records, per
+§9's cost scenarios do **not** sweep the vintages. They hold the horizon at 2050
+and vary the projection instead: `cost_scenarios.csv` records, per
 technology, the 2025→2050 trend and the pessimistic and optimistic tables
 built from it (half the trend in each direction, clipped at zero). The
 scenario tables are `technology_costs_full_2050_{pessimistic,optimistic}.csv`.

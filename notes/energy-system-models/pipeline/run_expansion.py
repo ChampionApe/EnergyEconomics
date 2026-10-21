@@ -278,11 +278,20 @@ def mix_row(n, sigma, rung, fraction):
         mw for tech, mw in caps.items() if str(tech).startswith("battery_")
     )
     # Summed over the zones: every zone has its own blocks of each kind.
+    w = n.snapshot_weightings.objective
     shed = {}
     for g, c in n.generators.carrier.items():
         if str(c).startswith("shed_"):
-            shed[c] = shed.get(c, 0.0) + float(
-                (n.generators_t.p[g] * n.snapshot_weightings.objective).sum())
+            shed[c] = shed.get(c, 0.0) + float((n.generators_t.p[g] * w).sum())
+    # The hours in which the cheap demand block gives way somewhere, which
+    # at the deep end makes it a margin of its own, and the share of what the
+    # weather offered (WEATHER_CARRIERS) that was thrown away.
+    flex = n.generators.index[n.generators.carrier == "shed_flex"]
+    weather = n.generators.index[n.generators.carrier.isin(WEATHER_CARRIERS)]
+    offered = float((n.generators.loc[weather, "p_nom_opt"]
+                     * n.get_switchable_as_dense("Generator", "p_max_pu")[weather])
+                    .mul(w, axis=0).sum().sum())
+    used = float(n.generators_t.p[weather].mul(w, axis=0).sum().sum())
     # How much of TYNDP's candidate menu the model took. Worth carrying into
     # the results rather than inferring later: at the tight budgets it builds
     # most of what is on offer, which makes the MENU the binding constraint
@@ -310,6 +319,8 @@ def mix_row(n, sigma, rung, fraction):
     }
     for carrier, mwh in shed.items():
         row[f"{carrier}_mwh"] = mwh
+    row["shed_flex_hours"] = float(w[n.generators_t.p[flex].sum(axis=1) > 1.0].sum())
+    row["curtailed_share"] = 1.0 - used / offered
     return row
 
 
@@ -383,15 +394,14 @@ def zone_detail(costs_full, hours, aggregation):
 
 # ---------------------------------------------------------------------------
 # What the section's figures read, beside the ladder. Every table comes from
-# the cached solves; nothing here solves.
+# the cached solves; nothing here solves the network (marginal_storage()
+# solves a small price-taker problem per zone and duration, in seconds).
+#
+# The figures read the whole system, not one zone: a price is the zones'
+# prices weighted by their demand, a quantity is summed over the zones.
 
-# The budget points the figures show, and the zone whose prices and hours
-# they follow (most of the demand in this footprint).
+# The budget points the figures show.
 FIGURE_FRACTIONS = [None, MID_FRACTION, REFERENCE_FRACTION]
-FIGURE_ZONE = "DE"
-# The two weeks of the EV figure, Monday to Monday, in the reference weather
-# year.
-EV_WEEKS = {"summer": "2024-07-01", "winter": "2024-01-15"}
 
 # What a figure calls each carrier. Batteries, pumped hydro and the cars
 # move electricity in time and the demand blocks are demand, so none of
@@ -456,6 +466,31 @@ def generation_by_source(n):
     return out.groupby(["zone", "source", "vintage"], as_index=False).mwh.sum()
 
 
+def electrical_zones(n):
+    """The bidding zones, without the hydrogen and EV buses named after
+    them."""
+    return [bus for bus in n.buses.index if expansion.electrical_zone(bus) == bus]
+
+
+def zone_demand(n):
+    """Each zone's fixed electricity demand, MW per snapshot: what a system
+    price weights the zonal prices by. The cars' smart charging and the
+    electrolysers are decisions rather than demand, and the driving and the
+    hydrogen demand sit on buses of their own."""
+    zones = electrical_zones(n)
+    loads = n.loads.index[n.loads.bus.isin(zones)]
+    demand = n.get_switchable_as_dense("Load", "p_set")[loads]
+    return demand.T.groupby(n.loads.loc[loads, "bus"]).sum().T[zones]
+
+
+def system_price(n):
+    """The system's electricity price per snapshot, EUR/MWh: the zonal
+    prices weighted by each zone's demand."""
+    demand = zone_demand(n)
+    price = n.buses_t.marginal_price[demand.columns]
+    return (price * demand).sum(axis=1) / demand.sum(axis=1)
+
+
 def effective_marginal_cost(n):
     """Each generator's marginal cost as its optimality condition sees it,
     c_g + sigma e_g, except for gas once the carbon price is above the
@@ -482,9 +517,10 @@ def switch_price():
 def price_setters(n, zone, tol=0.6):
     """For every snapshot, the zone's price and what sets it: a plant in the
     zone running between zero and its available capacity whose effective
-    marginal cost is the price; failing that, an electrolyser, a battery or
-    the cars running in between their limits, whose valuations are the
-    price by their own optimality conditions. Otherwise the price is set
+    marginal cost is the price; failing that, an electrolyser, a battery,
+    the cars or a hydro reservoir running in between their limits, whose
+    valuations are the price by their own optimality conditions (a
+    reservoir's is the value of its water). Otherwise the price is set
     outside the zone, across an uncongested wire, and the setter is left
     blank."""
     price = n.buses_t.marginal_price[zone]
@@ -503,17 +539,17 @@ def price_setters(n, zone, tol=0.6):
         lo, hi = flow[names], nom[names]
         return ((lo.abs() > 1e-3) & (lo.abs() < hi - 1e-3)).any(axis=1)
 
-    links = n.links
+    links, units = n.links, n.storage_units
     electrolysers = links.index[(links.carrier == "electrolyser") & (links.bus0 == zone)]
     cars = links.index[links.carrier.isin(["ev_charger", "ev_v2g"])
                        & ((links.bus0 == zone) | (links.bus1 == zone))]
-    batteries = n.storage_units.index[n.storage_units.carrier.str.startswith("battery_")
-                                      & (n.storage_units.bus == zone)]
+    batteries = units.index[units.carrier.str.startswith("battery_") & (units.bus == zone)]
+    reservoirs = units.index[units.carrier.isin(["hydro", "PHS"]) & (units.bus == zone)]
     link_room = links.p_nom_opt * n.get_switchable_as_dense("Link", "p_max_pu")
     others = [("electrolyser", between(electrolysers, n.links_t.p0, link_room)),
-              ("battery", between(batteries, n.storage_units_t.p,
-                                  n.storage_units.p_nom_opt)),
-              ("cars", between(cars, n.links_t.p0, link_room))]
+              ("battery", between(batteries, n.storage_units_t.p, units.p_nom_opt)),
+              ("cars", between(cars, n.links_t.p0, link_room)),
+              ("hydro", between(reservoirs, n.storage_units_t.p, units.p_nom_opt))]
     setters = []
     for s in n.snapshots:
         names = sorted({n.generators.at[g, "carrier"] for g in gens[plant.loc[s].to_numpy()]})
@@ -524,6 +560,212 @@ def price_setters(n, zone, tol=0.6):
                          "hours": n.snapshot_weightings.objective})
 
 
+# How the figures group what sets a price: a plant by its fuel, a machine
+# that moves energy in time or turns it into hydrogen by what it is, and the
+# demand blocks together.
+SETTER_GROUP = {
+    "ror": "wind_solar", "onwind": "wind_solar", "wind_onshore": "wind_solar",
+    "offwind-ac": "wind_solar", "wind_offshore": "wind_solar",
+    "solar": "wind_solar", "solar_pv": "wind_solar",
+    "nuclear": "nuclear", "coal": "coal", "lignite": "coal", "oil": "coal",
+    "CCGT": "gas", "OCGT": "gas", "ccgt": "gas", "ocgt": "gas",
+    "biomass": "biomass", "waste": "biomass", "geothermal": "biomass",
+    "shed_flex": "demand", "shed_industry": "demand", "shed_voll": "demand",
+    "battery": "battery", "cars": "cars", "electrolyser": "electrolyser",
+    "hydro": "hydro",
+}
+
+
+def system_setters(n, tol=0.6, loss=0.04):
+    """Who sets the price over the whole system: the share of the year's
+    demand, zone by zone and snapshot by snapshot, whose price was set by
+    each group of SETTER_GROUP (price_setters()). A zone whose price is set
+    across an uncongested wire takes the setters of the zones it shares its
+    price with -- equal up to the wires' losses, a few per cent -- and a
+    zone-hour with several setters is split between them. One with no
+    setter in its zone or among those it shares a price with is
+    "unattributed"."""
+    zones = electrical_zones(n)
+    demand = zone_demand(n).mul(n.snapshot_weightings.objective, axis=0)
+    price = n.buses_t.marginal_price[zones]
+    own = pd.DataFrame({z: price_setters(n, z, tol)["setter"] for z in zones})
+    wires = {(a, b) for frame in (n.links, n.lines)
+             for a, b in zip(frame.bus0, frame.bus1) if a in zones and b in zones}
+    shares = {}
+    for s in n.snapshots:
+        level = price.loc[s]
+        parent = {z: z for z in zones}
+
+        def root(z):
+            while parent[z] != z:
+                z = parent[z]
+            return z
+
+        for a, b in wires:
+            if abs(level[a] - level[b]) <= max(tol, loss * max(abs(level[a]), abs(level[b]))):
+                parent[root(a)] = root(b)
+        named = {z: [x for x in own.at[s, z].split(",") if x] for z in zones}
+        shared = {}
+        for z in zones:
+            shared.setdefault(root(z), set()).update(named[z])
+        for z in zones:
+            setters = named[z] or sorted(shared[root(z)]) or ["unattributed"]
+            for setter in setters:
+                group = SETTER_GROUP.get(setter, setter)
+                shares[group] = shares.get(group, 0.0) + demand.at[s, z] / len(setters)
+    total = sum(shares.values())
+    return pd.Series({k: v / total for k, v in shares.items()}).sort_values(ascending=False)
+
+
+# The carriers whose output is the weather's: what a residual demand is
+# residual to, and what curtailment throws away.
+WEATHER_CARRIERS = {"ror", "onwind", "wind_onshore", "offwind-ac", "wind_offshore",
+                    "solar", "solar_pv"}
+# How the scarce-hours figure groups what covers the residual demand.
+COVER_GROUP = {
+    "nuclear": "nuclear", "coal": "coal", "lignite": "coal", "oil": "coal",
+    "CCGT": "gas", "OCGT": "gas", "ccgt": "gas", "ocgt": "gas",
+    "biomass": "biomass", "waste": "biomass", "geothermal": "biomass",
+    "shed_flex": "demand", "shed_industry": "demand", "shed_voll": "demand",
+}
+
+
+def scarcest(n, share=0.1):
+    """The snapshots making up the tenth of the year (in hours) with the
+    highest residual demand: the zones' fixed demand less the wind, solar
+    and run-of-river they have available."""
+    w = n.snapshot_weightings.objective
+    g = n.generators[n.generators.bus.isin(electrical_zones(n))]
+    weather = g.index[g.carrier.isin(WEATHER_CARRIERS)]
+    available = (g.loc[weather, "p_nom_opt"]
+                 * n.get_switchable_as_dense("Generator", "p_max_pu")[weather]).sum(axis=1)
+    residual = zone_demand(n).sum(axis=1) - available
+    order = residual.sort_values(ascending=False).index
+    return order[(w[order].cumsum() <= share * w.sum()).to_numpy()]
+
+
+def scarce_hours(n, share=0.1):
+    """What covers the hours the system finds hardest (scarcest()): the
+    share of what was delivered in them that came from each source --
+    plants by fuel, with gas split into natural gas and biomethane by
+    biomethane_share(), hydro reservoirs and pumped hydro, batteries, the
+    cars giving back, hydrogen burnt for power, and demand that was shed
+    rather than served."""
+    top = scarcest(n, share)
+    w = n.snapshot_weightings.objective[top]
+    g = n.generators[n.generators.bus.isin(electrical_zones(n))]
+    made = n.generators_t.p.loc[top, g.index].mul(w, axis=0).sum()
+    cover = made.groupby(g.carrier.map(COVER_GROUP)).sum().to_dict()
+    gas = g.index[g.carrier.isin(expansion.GAS_CARRIERS)]
+    bio = biomethane_share(n)
+    cover["biomethane"] = float(sum(
+        mwh * bio.get(zone, 0.0)
+        for zone, mwh in made[gas].groupby(g.loc[gas, "bus"]).sum().items()))
+    cover["gas"] = cover.get("gas", 0.0) - cover["biomethane"]
+    units, flow = n.storage_units, n.storage_units_t.p.loc[top]
+    for label, names in [("hydro", units.index[units.carrier.isin(["hydro", "PHS"])]),
+                         ("battery", units.index[units.carrier.str.startswith("battery_")])]:
+        cover[label] = float(flow[names].clip(lower=0).mul(w, axis=0).sum().sum())
+    for label, carrier in [("cars", "ev_v2g"), ("hydrogen", "h2_turbine")]:
+        names = n.links.index[n.links.carrier == carrier]
+        cover[label] = float((-n.links_t.p1.loc[top, names]).mul(w, axis=0).sum().sum())
+    total = sum(cover.values())
+    return pd.Series({k: v / total for k, v in cover.items() if v > 0.0})
+
+
+def electrolysers_in_scarce_hours(n):
+    """How hard the electrolysers run in the scarcest hours (scarcest()),
+    as a share of how hard they run on average over the year."""
+    names = n.links.index[n.links.carrier == "electrolyser"]
+    w = n.snapshot_weightings.objective
+    use = n.links_t.p0[names].sum(axis=1)
+    year = float((use * w).sum() / w.sum())
+    if year <= 0.0:
+        return None
+    top = scarcest(n)
+    return float((use[top] * w[top]).sum() / w[top].sum()) / year
+
+
+# The durations, hours, of the storage facility marginal_storage() places in
+# the solved prices: from the menu's longest battery to a month.
+STORAGE_DURATIONS = [8, 12, 24, 48, 96, 168, 336, 720]
+
+
+def battery_menu(n):
+    """The battery menu as one cost line, EUR per MW and year: a power part
+    and an energy part per hour of duration (the menu's batteries lie on a
+    line), with the efficiencies of the round trip's two legs and the charge
+    per MWh discharged."""
+    units = n.storage_units[n.storage_units.carrier.str.startswith("battery_")]
+    menu = units.drop_duplicates("carrier")
+    energy, power = np.polyfit(menu.max_hours, menu.capital_cost, 1)
+    first = menu.iloc[0]
+    return {"power_eur_mw": float(power), "energy_eur_mwh": float(energy),
+            "eta_store": float(first.efficiency_store),
+            "eta_dispatch": float(first.efficiency_dispatch),
+            "marginal_cost": float(first.marginal_cost)}
+
+
+def arbitrage(price, weight, hours, menu):
+    """The most one MW of storage of `hours` duration earns in a year
+    against the prices `price`, EUR, and how many full cycles it runs doing
+    so: a price-taker with perfect foresight, with the battery's law of
+    motion (eq:investment:soc), each snapshot standing for `weight` hours
+    and the year ending where it began."""
+    from scipy import sparse
+    from scipy.optimize import linprog
+    T = len(price)
+    t = np.arange(T)
+    # The variables: charging (T), discharging (T), state of charge (T).
+    cost = np.concatenate([weight * price,
+                           -weight * (price - menu["marginal_cost"]), np.zeros(T)])
+    motion = sparse.csr_matrix(
+        (np.concatenate([np.ones(T), -np.ones(T),
+                         -weight * menu["eta_store"], weight / menu["eta_dispatch"]]),
+         (np.tile(t, 4), np.concatenate([2 * T + t, 2 * T + (t - 1) % T, t, T + t]))),
+        shape=(T, 3 * T))
+    res = linprog(cost, A_eq=motion, b_eq=np.zeros(T),
+                  bounds=[(0, 1)] * (2 * T) + [(0, hours)] * T, method="highs")
+    if res.status != 0:
+        raise RuntimeError(f"storage arbitrage, {hours} h: {res.message}")
+    return -res.fun, float((res.x[T:2 * T] * weight).sum()) / hours
+
+
+def marginal_storage(n):
+    """What one more MW of storage of each duration in STORAGE_DURATIONS
+    would earn in each zone, against what it would cost: a price-taker with
+    perfect foresight trading against the solved prices (arbitrage()),
+    which by the envelope theorem is what the marginal MW is worth to the
+    system. Its cost is read off the battery menu's cost line
+    (battery_menu()), so a duration the menu does not offer is priced as a
+    longer battery. A battery the solve built comes out exactly at its
+    cost."""
+    menu = battery_menu(n)
+    w = n.snapshot_weightings.objective.to_numpy()
+    demand = zone_demand(n).mul(n.snapshot_weightings.objective, axis=0).sum()
+    rows = []
+    for zone in electrical_zones(n):
+        price = n.buses_t.marginal_price[zone].to_numpy()
+        for hours in STORAGE_DURATIONS:
+            revenue, cycles = arbitrage(price, w, hours, menu)
+            rows.append({"zone": zone, "hours": hours, "revenue_eur_mw": revenue,
+                         "cost_eur_mw": menu["power_eur_mw"] + menu["energy_eur_mwh"] * hours,
+                         "cycles": cycles, "demand_mwh": float(demand[zone])})
+    return pd.DataFrame(rows)
+
+
+def new_turbines(n):
+    """The open-cycle turbines the solve built, GW, and how many hours a
+    year they run at full output: at the deep end, the backup that burns
+    biomethane in the hours nothing else covers."""
+    g = n.generators
+    names = g.index[(g.carrier == "ocgt") & g.p_nom_extendable]
+    mw = float(g.loc[names, "p_nom_opt"].sum())
+    mwh = float(n.generators_t.p[names].mul(n.snapshot_weightings.objective, axis=0)
+                .sum().sum())
+    return {"gw": mw / 1e3, "full_load_hours": mwh / mw if mw > 1.0 else 0.0}
+
+
 def fixed_charging(n, zone, hourly):
     """What the zone's passenger cars draw when they charge on arrival, MW per
     snapshot: the baseline's profile (expansion.add_ev), to set a smart
@@ -532,26 +774,6 @@ def fixed_charging(n, zone, hourly):
     cars = fleet[fleet["flexible"].astype(str).str.lower().eq("true")]
     return float(cars["grid_twh"].sum()) * 1e6 * expansion.to_snapshots(
         n, hourly, expansion.EV_PROFILES[f"{zone}|arrival_passenger"])
-
-
-def ev_series(n, zone, hourly):
-    """One zone through the year, hour by hour: the price, what the passenger
-    cars draw from the grid and give back, and what the batteries do."""
-    links = n.links
-    charger = links.index[(links.carrier == "ev_charger") & (links.bus0 == zone)]
-    v2g = links.index[(links.carrier == "ev_v2g") & (links.bus1 == zone)]
-    batteries = n.storage_units.index[n.storage_units.carrier.str.startswith("battery_")
-                                      & (n.storage_units.bus == zone)]
-    p = n.storage_units_t.p[batteries].sum(axis=1)
-    frame = pd.DataFrame({
-        "price_eur_mwh": n.buses_t.marginal_price[zone],
-        "ev_charging_mw": (n.links_t.p0[charger].sum(axis=1) if len(charger)
-                           else fixed_charging(n, zone, hourly)),
-        "ev_v2g_mw": (-n.links_t.p1[v2g]).sum(axis=1) if len(v2g) else 0.0,
-        "battery_charging_mw": (-p).clip(lower=0),
-        "battery_discharging_mw": p.clip(lower=0),
-    }, index=n.snapshots)
-    return by_hour(n, frame, hourly)
 
 
 def ev_statistics(n, hourly):
@@ -603,60 +825,6 @@ def ev_statistics(n, hourly):
     return out
 
 
-def deep_end(n, zone):
-    """Why sigma sits where it does at the reference budget, beyond the
-    switch price: every gas plant already burns biomethane, so the tonnes
-    left are coal, and what pushes coal out in the hours it is marginal is a
-    new gas turbine burning biomethane. That turbine's investment condition
-    returns sigma (the section's eq:expansion:sigma-deep):
-
-        sigma = (c_bio - c_coal + (F - R_other) / (gamma H)) / e_coal,
-
-    with F its annual fixed cost, R_other the rent it earns in every other
-    hour, H the hours coal is marginal in the zone and gamma its average
-    availability in them."""
-    sigma = float(n.meta["co2_price"])
-    cost = effective_marginal_cost(n)
-    rates = expansion.emission_rates(n, n._emission_rates)
-    w = n.snapshot_weightings.objective
-    price = n.buses_t.marginal_price[zone]
-    g = n.generators
-    turbine = g.index[(g.carrier == "ocgt") & (g.bus == zone) & g.p_nom_extendable]
-    coal = g.index[(g.carrier == "coal") & (g.bus == zone)]
-    if not len(turbine) or not len(coal):
-        return None
-    t = turbine[0]
-    avail = n.get_switchable_as_dense("Generator", "p_max_pu")
-    rent = (price - cost[t]).clip(lower=0) * avail[t] * w
-    room = g.loc[coal, "p_nom_opt"] * avail[coal]
-    p = n.generators_t.p[coal]
-    marginal = pd.Series(False, index=n.snapshots)
-    for c in coal:
-        marginal |= ((p[c] > 1e-3) & (p[c] < room[c] - 1e-3)
-                     & ((cost[c] - price).abs() < 0.6))
-    hours = float(w[marginal].sum())
-    if hours == 0:
-        return None
-    gamma = float((avail[t] * w)[marginal].sum()) / hours
-    fixed = float(g.at[t, "capital_cost"])
-    other = float(rent[~marginal].sum())
-    c_coal = float((cost[coal] - sigma * rates[coal]).mean())
-    e_coal = float(rates[coal].mean())
-    return {
-        "sigma_eur_t": sigma,
-        "turbine_gw": float(g.at[t, "p_nom_opt"]) / 1e3,
-        "turbine_fixed_eur_mw": fixed,
-        "turbine_cost_eur_mwh": float(cost[t]),
-        "coal_cost_eur_mwh": c_coal,
-        "coal_rate_t_mwh": e_coal,
-        "coal_marginal_hours": hours,
-        "turbine_availability": gamma,
-        "rent_other_eur_mw": other,
-        "sigma_from_formula_eur_t": (float(cost[t]) - c_coal
-                                     + (fixed - other) / (gamma * hours)) / e_coal,
-    }
-
-
 def wire_rents(n):
     """Each new corridor's congestion rent per MW over the year against its
     annual fixed cost (prop:wire): equal for every corridor built below its
@@ -684,23 +852,23 @@ def wire_rents(n):
     }
 
 
-def hydrogen_months(n, zone, hourly):
-    """The zone's hydrogen month by month, MWh: reformed (from natural gas
-    and from biomethane, by biomethane_share()), imported, electrolysed and
-    burnt for power, and its store's mean and highest level."""
-    bus = f"{zone} H2"
+def hydrogen_months(n, hourly):
+    """The system's hydrogen month by month, MWh, summed over the zones:
+    reformed (from natural gas and from biomethane, by biomethane_share()),
+    imported, electrolysed and burnt for power, and the storage facilities'
+    mean and highest level."""
     links, g = n.links, n.generators
-    share = biomethane_share(n).get(zone, 0.0)
-    smr = g.index[(g.carrier == "smr") & (g.bus == bus)]
-    reformed = n.generators_t.p[smr].sum(axis=1)
-    electrolysers = links.index[(links.carrier == "electrolyser") & (links.bus1 == bus)]
-    turbines = links.index[(links.carrier == "h2_turbine") & (links.bus0 == bus)]
-    stores = n.stores.index[n.stores.bus == bus]
+    smr = g.index[g.carrier == "smr"]
+    bio = g.loc[smr, "bus"].map(expansion.electrical_zone).map(
+        biomethane_share(n)).fillna(0.0)
+    reformed = n.generators_t.p[smr]
+    electrolysers = links.index[links.carrier == "electrolyser"]
+    turbines = links.index[links.carrier == "h2_turbine"]
+    stores = n.stores.index[n.stores.bus.isin(n.buses.index[n.buses.carrier == "H2"])]
     frame = pd.DataFrame({
-        "reformed_gas_mwh": reformed * (1.0 - share),
-        "reformed_biomethane_mwh": reformed * share,
-        "imported_mwh": n.generators_t.p[g.index[(g.carrier == "h2_import")
-                                                 & (g.bus == bus)]].sum(axis=1),
+        "reformed_gas_mwh": reformed.mul(1.0 - bio, axis=1).sum(axis=1),
+        "reformed_biomethane_mwh": reformed.mul(bio, axis=1).sum(axis=1),
+        "imported_mwh": n.generators_t.p[g.index[g.carrier == "h2_import"]].sum(axis=1),
         "electrolysed_mwh": (-n.links_t.p1[electrolysers]).sum(axis=1),
         "to_power_mwh": (n.links_t.p0[turbines].sum(axis=1) if len(turbines) else 0.0),
         "store_mwh": (n.stores_t.e[stores].sum(axis=1) if len(stores) else 0.0),
@@ -714,13 +882,30 @@ def hydrogen_months(n, zone, hourly):
     return months
 
 
-def hydrogen_price(n, zone, hourly):
-    """The zone's hydrogen price over the year, EUR/MWh: its mean, and its
-    mean from March to September and from October to February."""
-    price = by_hour(n, n.buses_t.marginal_price[[f"{zone} H2"]], hourly)[f"{zone} H2"]
-    summer = price.index.month.isin(range(3, 10))
-    return {"mean": float(price.mean()), "summer": float(price[summer].mean()),
-            "winter": float(price[~summer].mean())}
+def hydrogen_price(n, hourly):
+    """The system's hydrogen price over the year, EUR/MWh: the zones' prices
+    weighted by their hydrogen demand -- its mean, and its mean from March
+    to September and from October to February."""
+    buses = n.buses.index[n.buses.carrier == "H2"]
+    loads = n.loads.index[n.loads.bus.isin(buses)]
+    demand = n.get_switchable_as_dense("Load", "p_set")[loads]
+    demand = demand.T.groupby(n.loads.loc[loads, "bus"]).sum().T
+    price = n.buses_t.marginal_price[demand.columns]
+    series = (price * demand).sum(axis=1) / demand.sum(axis=1)
+    hours = by_hour(n, series.to_frame("price"), hourly)["price"]
+    summer = hours.index.month.isin(range(3, 10))
+    return {"mean": float(hours.mean()), "summer": float(hours[summer].mean()),
+            "winter": float(hours[~summer].mean())}
+
+
+def import_step_price(n):
+    """The price of the dearest hydrogen import step in use, EUR/MWh: at the
+    middle budget the step that sets the price of hydrogen and, through the
+    reformer it displaces, the carbon price (eq:expansion:sigma-import)."""
+    g = n.generators
+    steps = g.index[g.carrier == "h2_import"]
+    used = n.generators_t.p[steps].mul(n.snapshot_weightings.objective, axis=0).sum() > 1.0
+    return float(g.loc[used[used].index, "marginal_cost"].max()) if used.any() else None
 
 
 def reformer_costs(n):
@@ -738,13 +923,13 @@ def figure_tables(baselines, costs_full, hours, aggregation):
     """Write the tables the section's figures read, and return the numbers
     the text quotes about them, for the summary."""
     hourly = hourly_index()
-    zone = FIGURE_ZONE
 
     def case(rung, fraction):
         return ladder_case(rung, fraction, baselines, costs_full, hours,
                            aggregation)[0]
 
-    generation, durations, setters, facts = [], {}, [], {}
+    generation, durations, facts = [], {}, {}
+    setters, scarce, storage = [], [], []
     for rung in RUNGS:
         for fraction in BUDGET_FRACTIONS:
             n = case(rung, fraction)
@@ -754,42 +939,41 @@ def figure_tables(baselines, costs_full, hours, aggregation):
             if fraction not in FIGURE_FRACTIONS:
                 continue
             key = f"{rung}|{label}"
-            hourly_price = by_hour(n, n.buses_t.marginal_price[[zone]], hourly)[zone]
-            durations[key] = hourly_price.sort_values(ascending=False).to_numpy()
-            levels = (price_setters(n, zone).groupby(["price_eur_mwh", "setter"])
-                      .hours.sum().reset_index())
-            setters.append(levels.assign(rung=rung, budget_fraction=label))
+            price = by_hour(n, system_price(n).to_frame("price"), hourly)["price"]
+            durations[key] = price.sort_values(ascending=False).to_numpy()
+            setters.append(system_setters(n).rename_axis("setter").reset_index(
+                name="share").assign(rung=rung, budget_fraction=label))
+            scarce.append(scarce_hours(n).rename_axis("source").reset_index(
+                name="share").assign(rung=rung, budget_fraction=label))
+            storage.append(marginal_storage(n).assign(rung=rung, budget_fraction=label))
             if rung == "basic":
                 facts[f"wires_{label}"] = wire_rents(n)
-            if fraction == REFERENCE_FRACTION and rung != "ev_h2":
-                facts[f"deep_end_{rung}"] = deep_end(n, zone)
+            if fraction == REFERENCE_FRACTION:
+                facts[f"turbines_{rung}"] = new_turbines(n)
             if rung in ("ev", "ev_v2g") and fraction is not None:
                 facts[f"cars_{rung}_{label}"] = ev_statistics(n, hourly)
             if rung == "ev_h2" and fraction is not None:
-                facts[f"h2_price_{label}"] = hydrogen_price(n, zone, hourly)
+                facts[f"h2_price_{label}"] = hydrogen_price(n, hourly)
+                facts[f"h2_import_step_{label}"] = import_step_price(n)
+                facts[f"electrolysers_scarce_{label}"] = electrolysers_in_scarce_hours(n)
             if rung == "ev_h2" and fraction == REFERENCE_FRACTION:
                 facts |= reformer_costs(n)
+            print(f"  figure tables: {key}")
     pd.concat(generation, ignore_index=True).to_csv(
         RESULTS / "expansion_generation.csv", index=False)
     pd.DataFrame(durations).round(2).to_csv(
         RESULTS / "expansion_price_duration.csv", index=False)
     pd.concat(setters, ignore_index=True).to_csv(
         RESULTS / "expansion_price_setters.csv", index=False)
-
-    weeks = []
-    for rung in ["basic", "ev", "ev_v2g"]:
-        year = ev_series(case(rung, MID_FRACTION), zone, hourly)
-        for name, start in EV_WEEKS.items():
-            t0 = pd.Timestamp(start)
-            week = year[(year.index >= t0) & (year.index < t0 + pd.Timedelta("7D"))]
-            weeks.append(week.assign(rung=rung, week=name).rename_axis("hour"))
-    pd.concat(weeks).to_csv(RESULTS / "expansion_ev_weeks.csv")
-
-    hydrogen_months(case("ev_h2", REFERENCE_FRACTION), zone, hourly).to_csv(
+    pd.concat(scarce, ignore_index=True).to_csv(
+        RESULTS / "expansion_scarce_hours.csv", index=False)
+    pd.concat(storage, ignore_index=True).to_csv(
+        RESULTS / "expansion_marginal_storage.csv", index=False)
+    hydrogen_months(case("ev_h2", REFERENCE_FRACTION), hourly).to_csv(
         RESULTS / "expansion_hydrogen_months.csv")
     print("wrote results/expansion_generation.csv, expansion_price_duration.csv, "
-          "expansion_price_setters.csv, expansion_ev_weeks.csv and "
-          "expansion_hydrogen_months.csv")
+          "expansion_price_setters.csv, expansion_scarce_hours.csv, "
+          "expansion_marginal_storage.csv and expansion_hydrogen_months.csv")
     return facts
 
 
@@ -919,8 +1103,10 @@ def main():
         "ev_participation": expansion.EV_PARTICIPATION,
         "forward_horizon": greenfield.FORWARD_HORIZON,
         "switch_price_eur_t": switch_price(),
-        "figure_zone": FIGURE_ZONE,
-        "ev_weeks": EV_WEEKS,
+        # The flexible demand block's willingness to pay: the price above
+        # which an hour costs that block its demand.
+        "flex_block_wtp_eur_mwh": {carrier: wtp for carrier, _, wtp
+                                   in greenfield.DK_DEMAND_BLOCKS}["shed_flex"],
     }
 
     def write_summary():

@@ -77,8 +77,9 @@ build.
   twelve-zone network (every zone extendable, then industrial hydrogen,
   then the grid), each rung swept over the CO2 budget. Cached;
   `--resolution-check` adds the full-year solve of the top rung.
-- `run_taxcap.py` — section 9: the ladder's basic rung re-solved on each
-  weather year under a fixed budget and under a fixed tax (requires
-  run_expansion.py first). Tax versus cap, measured on this system.
-- `build.py` — builds all figures (2.1–9.6), table 2.1 and the
+- `run_taxcap.py` — the ladder's basic rung re-solved on each weather year
+  under a fixed budget and under a fixed tax (requires run_expansion.py
+  first): tax versus cap, measured on this system. No figure in the note
+  uses it; notebook 08 asks the same question of the section 7 model.
+- `build.py` — builds every figure and generated table and the
   quoted-numbers macros (`*_values.tex`) into `writing/generated/`.
