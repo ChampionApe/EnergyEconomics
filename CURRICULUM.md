@@ -22,7 +22,8 @@ version exists, it is linked below and you can read that instead.
 Absalon. The following should be identical, but where there are differences,
 the Absalon version is the truth. Each lecture below lists what is *required*: the
 sections of the lecture notes it builds on, and the one or two papers the
-lecture works through. Only those and lecture slides can be asked at the exam.
+lecture works through. Those, the lecture slides and the exercises with their
+solutions can be asked at the exam, and nothing else.
 Everything listed as *supplementary* is there for those who want to go further.
 
 Each lecture requires that you read one paper or lecture note section before and
@@ -156,10 +157,6 @@ summaries of them, and they assume you have read the note sections they build on
   [Link](https://github.com/ChampionApe/EnergyEconomics/blob/main/notes/energy-system-models.pdf)
   
   *From dispatch to investment: annualised capital, screening curves, the greenfield problem, long-run zero profit, and what a rising carbon price builds.*
-- **Brown, Neumann and Riepin (2025).** “Price Formation Without Fuel Costs: The Interaction of Demand Elasticity with Storage Bidding.” *Energy Economics* 147, 108483.  
-  [DOI](https://doi.org/10.1016/j.eneco.2025.108483) · [Open version](https://doi.org/10.14279/depositonce-25473)
-  
-  *The workshop paper. What sets the price when nobody has a fuel cost, and how little demand elasticity it takes to change the answer. The mechanism behind the demand blocks in section 7.*
 
 **Supplementary**
 
@@ -180,10 +177,6 @@ summaries of them, and they assume you have read the note sections they build on
   [Link](https://github.com/ChampionApe/EnergyEconomics/blob/main/notes/energy-system-models.pdf)
   
   *The model at continental scale under a carbon budget, the division of labour between storage technologies, hydrogen; then what changes with the weather year, the cost catalogue and foresight, and what the model cannot say.*
-- **Victoria et al. (2019).** “The Role of Storage Technologies Throughout the Decarbonisation of the Sector-Coupled European Energy System.” *Energy Conversion and Management* 201, 111977.  
-  [DOI](https://doi.org/10.1016/j.enconman.2019.111977) · [Open version](https://arxiv.org/abs/1906.06936)
-  
-  *The workshop paper, and the one section 8 of the note is written against: batteries for the daily solar cycle, hydrogen for wind's longer swings, and neither of them until emissions are cut past about 80%. Appendix D tests two of its claims directly.*
 
 **Supplementary**
 
@@ -205,25 +198,171 @@ summaries of them, and they assume you have read the note sections they build on
   *How to model policy uncertainty in a climate policy analysis, on the US Inflation Reduction Act. Behind section 9 of the note.*
 
 
+## 08. Flexible demand
+
+**Required**
+
+- **Ambec and Crampes (2021).** “Real-Time Electricity Pricing to Balance Green Energy Intermittency.” *Energy Economics* 94, 105074.  
+  [DOI](https://doi.org/10.1016/j.eneco.2020.105074)
+  
+  *What real-time pricing does to the optimal mix of wind and thermal capacity in a two-state model, and why exposing consumers to volatile prices is worth it on net, with diminishing returns.*
+- **Fabra et al. (2021).** “Estimating the Elasticity to Real-Time Pricing: Evidence from the Spanish Electricity Market.” *AEA Papers and Proceedings* 111, 425–429.  
+  [DOI](https://doi.org/10.1257/pandp.20211007) · [Open version](https://mreguant.github.io/papers/pandp.20211007.pdf)
+  
+  *Spain made real-time pricing the default contract, and demand did not become more elastic. Five pages on the evidence the model above assumes away.*
+
+**Supplementary**
+
+- **Joskow and Wolfram (2012).** “Dynamic Pricing of Electricity.” *American Economic Review: Papers and Proceedings* 102(3), 381–385.  
+  [DOI](https://doi.org/10.1257/aer.102.3.381)
+  
+  *Why dynamic pricing has been so slow to arrive, in a short survey.*
+- **Jessoe and Rapson (2014).** “Knowledge Is (Less) Power: Experimental Evidence from Residential Energy Use.” *American Economic Review* 104(4), 1417–1438.  
+  [DOI](https://doi.org/10.1257/aer.104.4.1417)
+  
+  *A field experiment: households respond to peak prices once they can see their consumption, which suggests information, not preferences, is what makes demand inelastic.*
+- **Harding and Lamarche (2016).** “Empowering Consumers Through Data and Smart Technology: Experimental Evidence on the Consequences of Time-of-Use Electricity Pricing Policies.” *Journal of Policy Analysis and Management* 35(4), 906–931.  
+  [DOI](https://doi.org/10.1002/pam.21928)
+  
+  *A time-of-use experiment in which smart technology makes households respond more to the same prices.*
+- **Blonz, Palmer and Wichman (2025).** “Smart Thermostats, Automation, and Time-Varying Prices.” *American Economic Journal: Applied Economics* 17(1), 90–125.  
+  [DOI](https://doi.org/10.1257/app.20210618)
+  
+  *Automation as the complement to price incentives: a smart thermostat that shifts air conditioning out of peak hours, and how rarely households override it.*
+- **Andersen and Dietrich (2026).** “Price Response in Residential Electricity Demand: Evidence from Danish Smart Meter Data.” *Energy Economics* 153, 109087.  
+  [DOI](https://doi.org/10.1016/j.eneco.2025.109087)
+  
+  *The Danish evidence: hourly smart-meter data show most households do not respond to the spot price, while about a third do. The elasticity behind section 5 of Energy System Models.*
+
+
+## 09. Network effects in green technology adoption
+
+**Required**
+
+- **Li et al. (2017).** “The Market for Electric Vehicles: Indirect Network Effects and Policy Design.” *Journal of the Association of Environmental and Resource Economists* 4(1), 89–133.  
+  [DOI](https://doi.org/10.1086/689702)
+  
+  *Electric vehicles and charging stations feed each other. The paper estimates both directions of the indirect network effect and asks whether subsidising the car or the charger buys more adoption for the same money.*
+
+**Supplementary**
+
+- **Springel (2021).** “Network Externality and Subsidy Structure in Two-Sided Markets: Evidence from Electric Vehicle Incentives.” *American Economic Journal: Economic Policy* 13(4), 393–432.  
+  [DOI](https://doi.org/10.1257/pol.20190131)
+  
+  *The same question in Norway, with a structural two-sided market model: which side of the market a subsidy should go to.*
+- **Bollinger and Gillingham (2012).** “Peer Effects in the Diffusion of Solar Photovoltaic Panels.” *Marketing Science* 31(6), 900–912.  
+  [DOI](https://doi.org/10.1287/mksc.1120.0727)
+  
+  *Direct network effects for contrast: neighbours installing solar panels make you more likely to install one.*
+
+
+## 10. The energy efficiency gap
+
+**Required**
+
+- **Allcott and Greenstone (2012).** “Is There an Energy Efficiency Gap?” *Journal of Economic Perspectives* 26(1), 3–28.  
+  [DOI](https://doi.org/10.1257/jep.26.1.3)
+  
+  *Is there money left on the table in energy efficiency? A model of the investment decision separates an investment inefficiency from an unpriced externality, and the paper asks what the evidence says about each.*
+
+**Supplementary**
+
+- **Fowlie, Greenstone and Wolfram (2018).** “Do Energy Efficiency Investments Deliver? Evidence from the Weatherization Assistance Program.” *Quarterly Journal of Economics* 133(3), 1597–1644.  
+  [DOI](https://doi.org/10.1093/qje/qjy005) · [Open version](https://www.nber.org/papers/w21331)
+  
+  *A randomised evaluation of the largest US weatherisation programme: realised savings fall far short of the engineering projections, and the investments do not pay back.*
+- **Gillingham, Keyes and Palmer (2018).** “Advances in Evaluating Energy Efficiency Policies and Programs.” *Annual Review of Resource Economics* 10, 511–532.  
+  [DOI](https://doi.org/10.1146/annurev-resource-100517-023028)
+  
+  *A survey of how energy efficiency programmes are evaluated, and why ex ante and ex post estimates differ.*
+- **Gillingham, Rapson and Wagner (2016).** “The Rebound Effect and Energy Efficiency Policy.” *Review of Environmental Economics and Policy* 10(1), 68–88.  
+  [DOI](https://doi.org/10.1093/reep/rev017)
+  
+  *The rebound effect: why a more efficient appliance saves less energy than the engineering arithmetic says, how large the effect is, and why backfire is rare.*
+
+
+## 11. Energy policies for the green transition
+
+**Required**
+
+- **Mulder (2023).** “Regulation of Energy Markets: Economic Mechanisms and Policy Evaluation.” Springer. Read section 8 (skim).  
+  [DOI](https://doi.org/10.1007/978-3-031-16571-9)
+  
+  *Background on energy and climate policy instruments.*
+- **Dechezleprêtre, Nachtigall and Venmans (2023).** “The Joint Impact of the European Union Emissions Trading System on Carbon Emissions and Economic Performance.” *Journal of Environmental Economics and Management* 118, 102758.  
+  [DOI](https://doi.org/10.1016/j.jeem.2022.102758)
+  
+  *The causal effect of the EU ETS on emissions and on firms' economic performance, identified from the installation-level inclusion thresholds with matching and difference-in-differences.*
+
+**Supplementary**
+
+- **Fabra and Reguant (2024).** “The Energy Transition: A Balancing Act.” *Resource and Energy Economics* 76, 101408.  
+  [DOI](https://doi.org/10.1016/j.reseneeco.2023.101408)
+  
+  *Why climate policy has to balance cost efficiency against being feasible, fair, effective and stable, and what that means for the policy portfolio.*
+- **Dechezleprêtre et al. (2025).** “Fighting Climate Change: International Attitudes toward Climate Policies.” *American Economic Review* 115(4), 1258–1300.  
+  [DOI](https://doi.org/10.1257/aer.20230501)
+  
+  *Survey evidence from twenty countries on what makes people support a climate policy: their own cost, its perceived effectiveness and its fairness.*
+
+
+## 13. Energy and geopolitics
+
+**Required**
+
+- **Gerarden et al. (2025).** “Strategic Avoidance and the Welfare Impacts of U.S. Solar Panel Tariffs.” NBER Working Paper 34401.  
+  [Open version](https://www.nber.org/papers/w34401)
+  
+  *US tariffs on solar panels: how Chinese manufacturers moved production to avoid them, and what the tariffs did to prices, installations and welfare, in a structural model of global sourcing.*
+- **Cardoso, Salant and Daubanes (2025).** “The Dynamics of Evasion: The Price Cap on Russian Oil Exports and the Amassing of the Shadow Fleet.” CEEPR Working Paper 2025-05.  
+  [Open version](https://ceepr.mit.edu/wp-content/uploads/2025/03/MIT-CEEPR-WP-2025-05.pdf)
+  
+  *The G7 price cap on Russian oil when Russia can invest in a shadow fleet: why a tighter cap is not necessarily a better one.*
+
+**Supplementary**
+
+- **Spiro, Wachtmeister and Gars (2025).** “Assessing the Impacts of Oil Sanctions on Russia.” *Energy Policy* 206, 114739.  
+  [DOI](https://doi.org/10.1016/j.enpol.2025.114739)
+  
+  *What the EU embargo and the price cap actually did to Russian oil revenue, from prices, discounts and trade data.*
+
+
 ## Everything, alphabetically
 
 For revision.
 
+- **Allcott and Greenstone (2012).** “Is There an Energy Efficiency Gap?” *Journal of Economic Perspectives* 26(1), 3–28.
+- **Ambec and Crampes (2021).** “Real-Time Electricity Pricing to Balance Green Energy Intermittency.” *Energy Economics* 94, 105074.
+- **Andersen and Dietrich (2026).** “Price Response in Residential Electricity Demand: Evidence from Danish Smart Meter Data.” *Energy Economics* 153, 109087.
 - **Berg (2026).** “A Simple Model of Abatement Costs.”
 - **Berg (2026).** “Energy System Models.”
 - **Berg (2026).** “Generation Technologies.”
+- **Blonz, Palmer and Wichman (2025).** “Smart Thermostats, Automation, and Time-Varying Prices.” *American Economic Journal: Applied Economics* 17(1), 90–125.
+- **Bollinger and Gillingham (2012).** “Peer Effects in the Diffusion of Solar Photovoltaic Panels.” *Marketing Science* 31(6), 900–912.
 - **Borenstein (2012).** “The Private and Public Economics of Renewable Electricity Generation.” *Journal of Economic Perspectives* 26(1), 67–92.
-- **Brown, Neumann and Riepin (2025).** “Price Formation Without Fuel Costs: The Interaction of Demand Elasticity with Storage Bidding.” *Energy Economics* 147, 108483.
 - **Bushnell and Smith (2025).** “Modeling Uncertainty in Climate Policy: An Application to the US Inflation Reduction Act.” *Environmental and Energy Policy and the Economy* 6, 4–41.
 - **Butters, Dorsey and Gowrisankaran (2025).** “Soaking up the Sun: Battery Investment, Renewable Energy, and Market Equilibrium.” *Econometrica* 93(3), 891–927.
+- **Cardoso, Salant and Daubanes (2025).** “The Dynamics of Evasion: The Price Cap on Russian Oil Exports and the Amassing of the Shadow Fleet.” CEEPR Working Paper 2025-05.
 - **Chyong, Pollitt and Reiner (2024).** “Modelling Flexibility Requirements in Deep Decarbonisation Scenarios: The Role of Conventional Flexibility and Sector Coupling Options in the European 2050 Energy System.” *Energy Strategy Reviews* 52, 101322.
+- **Dechezleprêtre et al. (2025).** “Fighting Climate Change: International Attitudes toward Climate Policies.” *American Economic Review* 115(4), 1258–1300.
+- **Dechezleprêtre, Nachtigall and Venmans (2023).** “The Joint Impact of the European Union Emissions Trading System on Carbon Emissions and Economic Performance.” *Journal of Environmental Economics and Management* 118, 102758.
+- **Fabra and Reguant (2024).** “The Energy Transition: A Balancing Act.” *Resource and Energy Economics* 76, 101408.
+- **Fabra et al. (2021).** “Estimating the Elasticity to Real-Time Pricing: Evidence from the Spanish Electricity Market.” *AEA Papers and Proceedings* 111, 425–429.
+- **Fowlie, Greenstone and Wolfram (2018).** “Do Energy Efficiency Investments Deliver? Evidence from the Weatherization Assistance Program.” *Quarterly Journal of Economics* 133(3), 1597–1644.
+- **Gerarden et al. (2025).** “Strategic Avoidance and the Welfare Impacts of U.S. Solar Panel Tariffs.” NBER Working Paper 34401.
+- **Gillingham, Keyes and Palmer (2018).** “Advances in Evaluating Energy Efficiency Policies and Programs.” *Annual Review of Resource Economics* 10, 511–532.
+- **Gillingham, Rapson and Wagner (2016).** “The Rebound Effect and Energy Efficiency Policy.” *Review of Environmental Economics and Policy* 10(1), 68–88.
 - **Glaum, Neumann and Brown (2024).** “Offshore Power and Hydrogen Networks for Europe's North Sea.” *Applied Energy* 375, 123530.
 - **Gonzales, Ito and Reguant (2023).** “The Investment Effects of Market Integration: Evidence from Renewable Energy Expansion in Chile.” *Econometrica* 91(5), 1659–1693.
+- **Harding and Lamarche (2016).** “Empowering Consumers Through Data and Smart Technology: Experimental Evidence on the Consequences of Time-of-Use Electricity Pricing Policies.” *Journal of Policy Analysis and Management* 35(4), 906–931.
 - **Heptonstall and Gross (2021).** “A Systematic Review of the Costs and Impacts of Integrating Variable Renewables into Power Grids.” *Nature Energy* 6(1), 72–83.
 - **Hirth (2013).** “The Market Value of Variable Renewables: The Effect of Solar Wind Power Variability on Their Relative Price.” *Energy Economics* 38, 218–236.
 - **Hogan (2018).** “A Primer on Transmission Benefits and Cost Allocation.” *Economics of Energy & Environmental Policy* 7(1), 25–45.
+- **Jessoe and Rapson (2014).** “Knowledge Is (Less) Power: Experimental Evidence from Residential Energy Use.” *American Economic Review* 104(4), 1417–1438.
 - **Joskow (2011).** “Comparing the Costs of Intermittent and Dispatchable Electricity Generating Technologies.” *American Economic Review: Papers & Proceedings* 101(3), 238–241.
 - **Joskow and Tirole (2005).** “Merchant Transmission Investment.” *The Journal of Industrial Economics* 53(2), 233–264.
+- **Joskow and Wolfram (2012).** “Dynamic Pricing of Electricity.” *American Economic Review: Papers and Proceedings* 102(3), 381–385.
+- **Li et al. (2017).** “The Market for Electric Vehicles: Indirect Network Effects and Policy Design.” *Journal of the Association of Environmental and Resource Economists* 4(1), 89–133.
 - **López Prol, Steininger and Zilberman (2020).** “The Cannibalization Effect of Wind and Solar in the California Wholesale Electricity Market.” *Energy Economics* 85, 104552.
 - **Lüth, Seifert and Weibezahn (2023).** “How to Connect Energy Islands: Trade-Offs Between Hydrogen and Electricity Infrastructure.” *Applied Energy* 341, 121045.
 - **Mulder (2023).** “Regulation of Energy Markets: Economic Mechanisms and Policy Evaluation.” Springer.
@@ -231,5 +370,6 @@ For revision.
 - **Odenweller et al. (2026).** “REMIND-PyPSA-Eur: Integrating Power System Flexibility into Sector-Coupled Energy Transition Pathways.” *Progress in Energy* 8, 025001.
 - **Reichenberg, Ekholm and Boomsma (2023).** “Revenue and Risk of Variable Renewable Electricity Investment: The Cannibalization Effect under High Market Penetration.” *Energy* 284, 128419.
 - **Ruhnau, Hirth and Praktiknjo (2020).** “Heating with Wind: Economics of Heat Pumps and Variable Renewables.” *Energy Economics* 92, 104967.
-- **Victoria et al. (2019).** “The Role of Storage Technologies Throughout the Decarbonisation of the Sector-Coupled European Energy System.” *Energy Conversion and Management* 201, 111977.
+- **Spiro, Wachtmeister and Gars (2025).** “Assessing the Impacts of Oil Sanctions on Russia.” *Energy Policy* 206, 114739.
+- **Springel (2021).** “Network Externality and Subsidy Structure in Two-Sided Markets: Evidence from Electric Vehicle Incentives.” *American Economic Journal: Economic Policy* 13(4), 393–432.
 - **Zerrahn, Schill and Kemfert (2018).** “On the Economics of Electrical Storage for Variable Renewable Energy Sources.” *European Economic Review* 108, 259–279.

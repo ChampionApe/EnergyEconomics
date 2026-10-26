@@ -13,6 +13,7 @@ Economics, University of Copenhagen.
 | [`CURRICULUM.md`](CURRICULUM.md) | The reading list, and where to find the papers |
 | [`slides/`](slides/) | Lecture slides, added as the term goes. The `-notes` version of each has my notes on the page after every slide |
 | [`worksheets/`](worksheets/) | The worksheet for each workshop lecture, published before class, numbered by lecture. Print it and bring it. A notebook of the same number, where there is one, is optional: it reproduces the worksheet's evidence and adds questions to explore |
+| [`exams/`](exams/) | Mock exams in the format of the written exam, each with its solutions and marking guide. The box on the front page says what each one covers, including lectures still to come |
 
 ### Lecture notes, and the code behind them
 
