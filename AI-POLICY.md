@@ -99,6 +99,23 @@ assumption. The assistant is a second route, never the only one.
 If something in the material only makes sense after you ask an AI about it, that
 is a bug in the material. Tell me and I will fix it.
 
+## The Model Lab and your data
+
+The Model Lab's AI tutor reads the open answers you send it.
+
+- **Don't include personal information.** The Lab knows you only by your
+  random code.
+- **What the Lab keeps.** Your typed answers and the tutor's feedback, under
+  that code, so you can come back to them. Everything is deleted when the
+  course ends, before the next year's course.
+- **Images you upload are never saved by the Lab.** They are sent to the tutor
+  and dropped as soon as it has answered.
+- **What passes through Anthropic.** The tutor is Claude, run by Anthropic.
+  Every answer you send to it, typed or uploaded, passes through Anthropic's
+  API. Anthropic does not use it to train its models, and deletes it within 30
+  days, unless its safety systems flag it (then it can be kept for up to two
+  years) or the law requires otherwise.
+
 ## Feedback
 
 If the assistant gives you something wrong, misleading, or maddening, please tell
