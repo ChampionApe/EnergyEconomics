@@ -306,25 +306,18 @@ summaries of them, and they assume you have read the note sections they build on
   *Survey evidence from twenty countries on what makes people support a climate policy: their own cost, its perceived effectiveness and its fairness.*
 
 
-## 13. Energy and geopolitics
+## 12. Energy and geopolitics
 
 **Required**
 
-- **Gerarden et al. (2025).** “Strategic Avoidance and the Welfare Impacts of U.S. Solar Panel Tariffs.” NBER Working Paper 34401.  
-  [Open version](https://www.nber.org/papers/w34401)
-  
-  *US tariffs on solar panels: how Chinese manufacturers moved production to avoid them, and what the tariffs did to prices, installations and welfare, in a structural model of global sourcing.*
 - **Cardoso, Salant and Daubanes (2025).** “The Dynamics of Evasion: The Price Cap on Russian Oil Exports and the Amassing of the Shadow Fleet.” CEEPR Working Paper 2025-05.  
   [Open version](https://ceepr.mit.edu/wp-content/uploads/2025/03/MIT-CEEPR-WP-2025-05.pdf)
   
   *The G7 price cap on Russian oil when Russia can invest in a shadow fleet: why a tighter cap is not necessarily a better one.*
-
-**Supplementary**
-
 - **Spiro, Wachtmeister and Gars (2025).** “Assessing the Impacts of Oil Sanctions on Russia.” *Energy Policy* 206, 114739.  
   [DOI](https://doi.org/10.1016/j.enpol.2025.114739)
   
-  *What the EU embargo and the price cap actually did to Russian oil revenue, from prices, discounts and trade data.*
+  *What the EU embargo and the price cap actually did to Russian oil revenue, from prices, discounts and trade data: the evidence to set against Cardoso et al.'s model.*
 
 
 ## Everything, alphabetically
@@ -349,7 +342,6 @@ For revision.
 - **Fabra and Reguant (2024).** “The Energy Transition: A Balancing Act.” *Resource and Energy Economics* 76, 101408.
 - **Fabra et al. (2021).** “Estimating the Elasticity to Real-Time Pricing: Evidence from the Spanish Electricity Market.” *AEA Papers and Proceedings* 111, 425–429.
 - **Fowlie, Greenstone and Wolfram (2018).** “Do Energy Efficiency Investments Deliver? Evidence from the Weatherization Assistance Program.” *Quarterly Journal of Economics* 133(3), 1597–1644.
-- **Gerarden et al. (2025).** “Strategic Avoidance and the Welfare Impacts of U.S. Solar Panel Tariffs.” NBER Working Paper 34401.
 - **Gillingham, Keyes and Palmer (2018).** “Advances in Evaluating Energy Efficiency Policies and Programs.” *Annual Review of Resource Economics* 10, 511–532.
 - **Gillingham, Rapson and Wagner (2016).** “The Rebound Effect and Energy Efficiency Policy.” *Review of Environmental Economics and Policy* 10(1), 68–88.
 - **Glaum, Neumann and Brown (2024).** “Offshore Power and Hydrogen Networks for Europe's North Sea.” *Applied Energy* 375, 123530.
